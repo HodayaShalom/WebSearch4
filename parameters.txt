@@ -1,0 +1,5 @@
+trainFile=train.csv
+testFile=test.csv
+outputFile=out/out1.csv 
+k=20 
+
