@@ -4,7 +4,7 @@ import java.io.IOException;
 
 public class Program {
 
-    public static void main(String[] args) throws IOException, ParseException {
+    public static void main(String[] args) throws IOException, ParseException , Exception{
         String configFile = args[0];
         Configuration config = new Configuration(configFile);
         Logic logic = new Logic(config);
