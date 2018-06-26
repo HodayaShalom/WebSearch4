@@ -1,5 +1,8 @@
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
+import org.apache.commons.io.FileUtils;
 
 import org.apache.lucene.analysis.StopwordAnalyzerBase;
 import org.apache.lucene.index.*;
@@ -31,22 +34,17 @@ public class Logic {
 
 
         Vector<Entry> trainData = readData(config.train);
+//        calculateFeatures(trainData);
         Vector<Entry> testData = readData(config.test);
+//        calculateFeatures(testData);
 
         runTrainAndTest(trainData, testData);
 
 
     }
 
-
-//    private ArrayList<String> readClasses(String classesFile)
-//    {
-//
-//    }
-
-
     private Vector<Entry> readData(String dataFile) throws Exception {
-        Vector<Entry> dataEntries = new Vector<Entry>();
+        Vector<Entry> dataEntries = new Vector<>();
         BufferedReader reader = new BufferedReader(new FileReader(dataFile));
         int counter = 0;
         String line;
@@ -56,18 +54,57 @@ public class Logic {
             if (counter % 100 == 0)
                 System.out.println("" + counter + " lines were loaded");
 
-            String []tokens = line.split(",");
+            String[] tokens = line.split(",");
             Entry entry = new Entry();
             entry.id = tokens[0];
             entry.label = Integer.parseInt(tokens[1]);
             // TODO - lemmatize and stem
             String[] words_lemmatized = (tokens[2] + " " + tokens[3]).split(" ");
 //            Vector<Vector<String>> words = openNlp.processText(tokens[2] + " " + tokens[3], true, true);
-            entry.words = words_lemmatized;
+
+            // TODO - lowercase all text, and clean text from non letter chars. (in a function?)
+            entry.words = new Vector<>(Arrays.asList(words_lemmatized));
             dataEntries.add(entry);
         }
         reader.close();
         return dataEntries;
+    }
+
+
+    void calculateFeatures(Vector<Entry> entries) throws Exception {
+        for(Entry entry: entries){
+            // calculate frequency for all lemmas, using a dictionary for each entry, where (key = lemma, value = frequency in doc)
+            for (int i = 0; i < entry.words.size(); ++i) {
+                addFeature(entry.features, cleanWord(entry.words.get(i)));
+            }
+        }
+    }
+
+    /*
+     * helper function to clean a word
+     */
+    String cleanWord(String word) {
+
+        StringBuffer newWord = new StringBuffer();
+        for (int i = 0; i < word.length(); ++i) {
+            if (Character.isLetter(word.charAt(i)))
+                newWord.append(word.charAt(i));
+        }
+        if (newWord.toString().length() > 0)
+            return newWord.toString();
+        return "";
+    }
+
+    /*
+     * adding feature to the "bag" of feature, with it's frequency
+     */
+    void addFeature(HashMap<String, Integer> features, String feature) {
+        Integer num = features.get(feature);
+        if (num == null)
+            features.put(feature, new Integer(1));
+        else {
+            features.put(feature, new Integer(num.intValue() + 1));
+        }
     }
 
 
@@ -87,7 +124,7 @@ public class Logic {
             }
             // TODO - write to file
         }
-        accuracy = accuracy / (double)testData.numInstances();
+        accuracy = accuracy / (double) testData.numInstances();
         double accuracyTest = accuracy;
 
 //        accuracy = 0;
@@ -103,22 +140,32 @@ public class Logic {
     }
 
     void runTrainAndTest(Vector<Entry> train, Vector<Entry> test) throws Exception {
-        createDataFolder(train, trainFolder);
+        // write to directory in weka "format"
+        createDataFolder(train, config.trainFolder);
 
+        // load from weka directory into Instances
         TextDirectoryLoader loader = new TextDirectoryLoader();
-        loader.setDirectory(new File(trainFolder));
+        loader.setDirectory(new File(config.trainFolder));
         Instances dataRaw = loader.getDataSet();
+
         StringToWordVector filter = new StringToWordVector();
-        filter.setOptions(weka.core.Utils.splitOptions("-I -T")); // for TFIDF weighting function
+//        filter.setOptions(weka.core.Utils.splitOptions("-I -T"));
+        // for TFIDF weighting function
+        filter.setTFTransform(true);
+        filter.setIDFTransform(true);
+        // use stemmer here? stop words?
         filter.setInputFormat(dataRaw);
+
         Instances trainFiltered = Filter.useFilter(dataRaw, filter);
+
         Reorder reorder = new Reorder();
         reorder.setOptions(weka.core.Utils.splitOptions("-R 2-last,first"));
         reorder.setInputFormat(trainFiltered);
         trainFiltered = Filter.useFilter(trainFiltered, reorder);
 
-        createDataFolder(test, testFolder);
-        loader.setDirectory(new File(testFolder));
+
+        createDataFolder(test, config.testFolder);
+        loader.setDirectory(new File(config.testFolder));
         dataRaw = loader.getDataSet();
         //filter.setInputFormat(dataRaw);
         Instances testFiltered = Filter.useFilter(dataRaw, filter);
@@ -248,23 +295,45 @@ public class Logic {
     void createDataFolder(Vector<Entry> data, String folder) throws IOException {
         File mainFolder = new File(folder);
         if (mainFolder.exists()) {
-            removeDirectory(mainFolder);
-            mainFolder.mkdir();
+            FileUtils.deleteDirectory(mainFolder);
+//            removeDirectory(mainFolder);
+//            mainFolder.mkdir();
         }
-        // create the train folder
-        for (int i = 0; i < data.size(); ++i) {
-            File classFolder = new File(folder + "/class" + data.get(i).label);
-            if (!classFolder.exists())
-                classFolder.mkdir();
-            PrintWriter pw = new PrintWriter(folder + "/class" + data.get(i).label + "/twit" + i + ".txt");
+//        Files.createDirectories(Paths.get(folder));
 
-            Iterator<String> iter = data.get(i).features.keySet().iterator();
-            while (iter.hasNext()) {
-                String word = iter.next();
-                Integer num = data.get(i).features.get(word);
-                for (int j = 0; j < num.intValue(); ++j)
+        // create the train/test folder
+        for (Entry entry: data) {
+            String classFolderPath = folder + "/class" + entry.label;
+            File classFolder = new File(classFolderPath);
+            if (!classFolder.exists())
+                Files.createDirectories(Paths.get(classFolderPath));
+//                classFolder.mkdir();
+            PrintWriter pw = new PrintWriter(folder + "/class" + entry.label + "/doc" + entry.id + ".txt");
+
+            for (String word: entry.words){
+                if (!word.isEmpty())
                     pw.print(word + " ");
+//                Integer num = entry.features.get(word);
+//                for (int j = 0; j < num.intValue(); ++j)
+//                    pw.print(word + " ");
             }
+
+//            // using features:
+//            for (String word: entry.features.keySet()){
+//                // write each word to files according to its frequency
+//                Integer num = entry.features.get(word);
+//                for (int j = 0; j < num.intValue(); ++j)
+//                    pw.print(word + " ");
+//            }
+
+
+//            Iterator<String> iter = data.get(i).features.keySet().iterator();
+//            while (iter.hasNext()) {
+//                String word = iter.next();
+//                Integer num = data.get(i).features.get(word);
+//                for (int j = 0; j < num.intValue(); ++j)
+//                    pw.print(word + " ");
+//            }
             pw.close();
         }
     }
@@ -284,13 +353,10 @@ public class Logic {
             for (int i = 0; i < list.length; i++) {
                 File entry = new File(directory, list[i]);
 
-                if (entry.isDirectory())
-                {
+                if (entry.isDirectory()) {
                     if (!removeDirectory(entry))
                         return false;
-                }
-                else
-                {
+                } else {
                     if (!entry.delete())
                         return false;
                 }
@@ -300,13 +366,11 @@ public class Logic {
     }
 
     // members:
-    String trainFolder;
-    String testFolder;
     Configuration config;
-    StopwordAnalyzerBase analyzer;
-    Directory indexDir = new RAMDirectory();
-    IndexSearcher indexSearcher;
-    IndexWriter writer;
-    Similarity similarity;
+//    StopwordAnalyzerBase analyzer;
+//    Directory indexDir = new RAMDirectory();
+//    IndexSearcher indexSearcher;
+//    IndexWriter writer;
+//    Similarity similarity;
 //    Evaluator evaluator = null;
 }

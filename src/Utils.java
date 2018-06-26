@@ -54,7 +54,7 @@ public class Utils {
 //    }
 
     public static String StripPunctuationsAndSigns(String str) {
-        return str.replaceAll("[.,\"?;'-]", "");
+        return str.replaceAll("[.,\"?;:'-]", "");
     }
 
 

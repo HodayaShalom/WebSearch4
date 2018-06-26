@@ -32,6 +32,15 @@ public class Configuration {
 //                    throw new IOException("Mode (Retrieval Algorithm) parameter must be basic/improved");
             }
 
+
+            if (line.startsWith("trainFolderWeka")) {
+                trainFolder = line.substring(line.indexOf("=") + 1);
+            }
+
+            if (line.startsWith("testFolderWeka")) {
+                testFolder = line.substring(line.indexOf("=") + 1);
+            }
+
 //            if (line.startsWith("truthFile")) {
 //                truth = line.substring(line.indexOf("=") + 1);
 //            }
@@ -44,5 +53,8 @@ public class Configuration {
     String test;
     String output;
     int k;
+
+    String trainFolder;
+    String testFolder;
 //    String truth;
 }

@@ -10,5 +10,6 @@
     <orderEntry type="library" name="weka" level="project" />
     <orderEntry type="library" name="opencsv-4.2" level="project" />
     <orderEntry type="library" name="lucene" level="project" />
+    <orderEntry type="library" name="commons-io-2.6" level="project" />
   </component>
 </module>

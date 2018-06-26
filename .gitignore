@@ -1,3 +1,5 @@
 /deps/weka-3-8-2-x64.exe
 /test.csv
 /train.csv
+/data/test.csv
+/data/train.csv
