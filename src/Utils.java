@@ -1,6 +1,8 @@
 import org.apache.lucene.document.Document;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.IndexSearcher;
+
+import java.io.File;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -70,4 +72,43 @@ public class Utils {
         return sortedMap;
     }
 
+    static public boolean removeDirectory(File directory) {
+        if (directory == null)
+            return false;
+        if (!directory.exists())
+            return true;
+        if (!directory.isDirectory())
+            return false;
+
+        String[] list = directory.list();
+
+        if (list != null) {
+            for (int i = 0; i < list.length; i++) {
+                File entry = new File(directory, list[i]);
+
+                if (entry.isDirectory()) {
+                    if (!removeDirectory(entry))
+                        return false;
+                } else {
+                    if (!entry.delete())
+                        return false;
+                }
+            }
+        }
+        return directory.delete();
+    }
+    /*
+     * helper function to clean a word
+     */
+    public static String cleanWord(String word) {
+
+        StringBuffer newWord = new StringBuffer();
+        for (int i = 0; i < word.length(); ++i) {
+            if (Character.isLetter(word.charAt(i)))
+                newWord.append(word.charAt(i));
+        }
+        if (newWord.toString().length() > 0)
+            return newWord.toString();
+        return "";
+    }
 }

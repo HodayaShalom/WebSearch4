@@ -4,15 +4,6 @@ import java.nio.file.Paths;
 import java.util.*;
 import org.apache.commons.io.FileUtils;
 
-import org.apache.lucene.analysis.StopwordAnalyzerBase;
-import org.apache.lucene.index.*;
-import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.similarities.*;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.RAMDirectory;
-
-
 import weka.classifiers.Classifier;
 import weka.classifiers.lazy.IBk;
 import weka.core.Instance;
@@ -28,7 +19,7 @@ public class Logic {
         this.config = config;
     }
 
-    public void run() throws IOException, ParseException, Exception {
+    public void run() throws IOException, Exception {
 
         System.out.format("Running with k = %d", config.k);
 
@@ -38,9 +29,19 @@ public class Logic {
         Vector<Entry> testData = readData(config.test);
 //        calculateFeatures(testData);
 
-        runTrainAndTest(trainData, testData);
+        ArrayList<ClassificationResult> results = runTrainAndTest(trainData, testData);
+
+        writeResultsToFile(results);
 
 
+    }
+
+    private void writeResultsToFile(ArrayList<ClassificationResult> results) {
+        // TODO
+//        Your software must write the test-set classification results to the specified output file in the
+//        following format:
+//        DocID, PredictedClassNumber, TrueClassNumber
+//        The list should be string-sorted by docID, and the fields are comma separated.
     }
 
     private Vector<Entry> readData(String dataFile) throws Exception {
@@ -58,11 +59,12 @@ public class Logic {
             Entry entry = new Entry();
             entry.id = tokens[0];
             entry.label = Integer.parseInt(tokens[1]);
+
+            // TODO - lowercase all text, and clean text from non letter chars. (in a function?)
             // TODO - lemmatize and stem
             String[] words_lemmatized = (tokens[2] + " " + tokens[3]).split(" ");
 //            Vector<Vector<String>> words = openNlp.processText(tokens[2] + " " + tokens[3], true, true);
 
-            // TODO - lowercase all text, and clean text from non letter chars. (in a function?)
             entry.words = new Vector<>(Arrays.asList(words_lemmatized));
             dataEntries.add(entry);
         }
@@ -70,76 +72,44 @@ public class Logic {
         return dataEntries;
     }
 
-
-    void calculateFeatures(Vector<Entry> entries) throws Exception {
-        for(Entry entry: entries){
-            // calculate frequency for all lemmas, using a dictionary for each entry, where (key = lemma, value = frequency in doc)
-            for (int i = 0; i < entry.words.size(); ++i) {
-                addFeature(entry.features, cleanWord(entry.words.get(i)));
-            }
-        }
-    }
-
-    /*
-     * helper function to clean a word
-     */
-    String cleanWord(String word) {
-
-        StringBuffer newWord = new StringBuffer();
-        for (int i = 0; i < word.length(); ++i) {
-            if (Character.isLetter(word.charAt(i)))
-                newWord.append(word.charAt(i));
-        }
-        if (newWord.toString().length() > 0)
-            return newWord.toString();
-        return "";
-    }
-
-    /*
-     * adding feature to the "bag" of feature, with it's frequency
-     */
-    void addFeature(HashMap<String, Integer> features, String feature) {
-        Integer num = features.get(feature);
-        if (num == null)
-            features.put(feature, new Integer(1));
-        else {
-            features.put(feature, new Integer(num.intValue() + 1));
-        }
-    }
-
-
     /*
      * build a model and test a specific classifier on a given testset.
      * returns the accuracy running on the test and train sets.
      */
-    void testClassifier(Classifier classifier, Instances trainData, Instances testData) throws Exception {
+    ArrayList<ClassificationResult> testClassifier(Classifier classifier, Instances trainData, Instances testData) throws Exception {
+
+        ArrayList<ClassificationResult> classificationResults = new ArrayList<>();
 
         classifier.buildClassifier(trainData);
         double accuracy = 0;
-        for (int i = 0; i < testData.numInstances(); ++i) {
-            Instance inst = testData.instance(i);
-            double pred = classifier.classifyInstance(inst);
-            if (inst.classValue() == pred) {
+        for (Instance instance: testData) {
+            double pred = classifier.classifyInstance(instance);
+            if (instance.classValue() == pred) {
                 accuracy++;
             }
-            // TODO - write to file
+
+            // TODO - somehow retrieve the docId
+            String docId = "";
+            ClassificationResult result = new ClassificationResult(docId, (int)instance.classValue(), (int)pred);
+            classificationResults.add(result);
+
         }
         accuracy = accuracy / (double) testData.numInstances();
-        double accuracyTest = accuracy;
 
-//        accuracy = 0;
-//        for (int i = 0; i < trainData.numInstances(); ++i) {
-//            Instance inst = trainData.instance(i);
-//            double pred = classifier.classifyInstance(inst);
-//            if (inst.classValue() == pred)
-//                accuracy++;
-//        }
-//        accuracy = accuracy / (double)trainData.numInstances();
-//        double accuracyTrain = accuracy;
+        // TODO - print accuracy to console (micro & macro F-score??)
+
+        System.out.format("Classification accuracy is: %f", accuracy);
+
+        return classificationResults;
+//        Your software must write the test-set classification results to the specified output file in the
+//        following format:
+//        DocID, PredictedClassNumber, TrueClassNumber
+//        The list should be string-sorted by docID, and the fields are comma separated.
+
 
     }
 
-    void runTrainAndTest(Vector<Entry> train, Vector<Entry> test) throws Exception {
+    ArrayList<ClassificationResult> runTrainAndTest(Vector<Entry> train, Vector<Entry> test) throws Exception {
         // write to directory in weka "format"
         createDataFolder(train, config.trainFolder);
 
@@ -179,7 +149,7 @@ public class Logic {
         Classifier classifier = new IBk();
         String[] options = weka.core.Utils.splitOptions("-K 1 -A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance -D\\\"\"");
         ((IBk) classifier).setOptions(options);
-        testClassifier(classifier, trainFiltered, testFiltered);
+        return testClassifier(classifier, trainFiltered, testFiltered);
 
 //        /// kNN - no normalization (k = 3)
 //        classifier = new IBk();
@@ -296,10 +266,7 @@ public class Logic {
         File mainFolder = new File(folder);
         if (mainFolder.exists()) {
             FileUtils.deleteDirectory(mainFolder);
-//            removeDirectory(mainFolder);
-//            mainFolder.mkdir();
         }
-//        Files.createDirectories(Paths.get(folder));
 
         // create the train/test folder
         for (Entry entry: data) {
@@ -307,15 +274,11 @@ public class Logic {
             File classFolder = new File(classFolderPath);
             if (!classFolder.exists())
                 Files.createDirectories(Paths.get(classFolderPath));
-//                classFolder.mkdir();
             PrintWriter pw = new PrintWriter(folder + "/class" + entry.label + "/doc" + entry.id + ".txt");
 
-            for (String word: entry.words){
+            for (String word: entry.words) {
                 if (!word.isEmpty())
                     pw.print(word + " ");
-//                Integer num = entry.features.get(word);
-//                for (int j = 0; j < num.intValue(); ++j)
-//                    pw.print(word + " ");
             }
 
 //            // using features:
@@ -326,44 +289,32 @@ public class Logic {
 //                    pw.print(word + " ");
 //            }
 
-
-//            Iterator<String> iter = data.get(i).features.keySet().iterator();
-//            while (iter.hasNext()) {
-//                String word = iter.next();
-//                Integer num = data.get(i).features.get(word);
-//                for (int j = 0; j < num.intValue(); ++j)
-//                    pw.print(word + " ");
-//            }
             pw.close();
         }
     }
 
 
-    static public boolean removeDirectory(File directory) {
-        if (directory == null)
-            return false;
-        if (!directory.exists())
-            return true;
-        if (!directory.isDirectory())
-            return false;
-
-        String[] list = directory.list();
-
-        if (list != null) {
-            for (int i = 0; i < list.length; i++) {
-                File entry = new File(directory, list[i]);
-
-                if (entry.isDirectory()) {
-                    if (!removeDirectory(entry))
-                        return false;
-                } else {
-                    if (!entry.delete())
-                        return false;
-                }
+    void calculateFeatures(Vector<Entry> entries) throws Exception {
+        for(Entry entry: entries){
+            // calculate frequency for all lemmas, using a dictionary for each entry, where (key = lemma, value = frequency in doc)
+            for (int i = 0; i < entry.words.size(); ++i) {
+                addFeature(entry.features, Utils.cleanWord(entry.words.get(i)));
             }
         }
-        return directory.delete();
     }
+
+    /*
+     * adding feature to the "bag" of feature, with it's frequency
+     */
+    void addFeature(HashMap<String, Integer> features, String feature) {
+        Integer num = features.get(feature);
+        if (num == null)
+            features.put(feature, new Integer(1));
+        else {
+            features.put(feature, new Integer(num.intValue() + 1));
+        }
+    }
+
 
     // members:
     Configuration config;
