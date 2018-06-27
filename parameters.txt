@@ -1,5 +1,5 @@
-trainFile=data/train_short.csv
-testFile=data/test_short.csv
+trainFile=data/train.csv
+testFile=data/test.csv
 outputFile=out/out1.csv 
 k=20
 trainFolderWeka=c:/Dev/wekaFolders/train

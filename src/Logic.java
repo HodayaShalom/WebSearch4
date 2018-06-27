@@ -37,7 +37,7 @@ public class Logic {
     }
 
     private void writeResultsToFile(ArrayList<ClassificationResult> results) {
-        // TODO
+        // TODO - write results to config.outputFile
 //        Your software must write the test-set classification results to the specified output file in the
 //        following format:
 //        DocID, PredictedClassNumber, TrueClassNumber
@@ -50,6 +50,7 @@ public class Logic {
         int counter = 0;
         String line;
 
+        System.out.format("reading data from %s", dataFile);
         while ((line = reader.readLine()) != null) {
             counter++;
             if (counter % 100 == 0)
@@ -145,10 +146,12 @@ public class Logic {
 //        Vector<Stat> stats = new Vector<Stat>();
 
 
-        /// kNN - no normalization (k = 1)
+        /// kNN - no normalization
         Classifier classifier = new IBk();
-        String[] options = weka.core.Utils.splitOptions("-K 1 -A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance -D\\\"\"");
+        String[] options = weka.core.Utils.splitOptions(
+                "-A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance -D\\\"\"");
         ((IBk) classifier).setOptions(options);
+        ((IBk) classifier).setKNN(config.k);
         return testClassifier(classifier, trainFiltered, testFiltered);
 
 //        /// kNN - no normalization (k = 3)
