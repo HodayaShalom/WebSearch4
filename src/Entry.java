@@ -6,6 +6,7 @@ public class Entry {
     int label;
     //    Vector<Vector<String>> words;
     Vector<String> words;
+    String text;
 //    String[] words;
     String id;
 }

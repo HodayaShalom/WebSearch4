@@ -1,6 +1,7 @@
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.*;
 import org.apache.commons.io.FileUtils;
 
@@ -24,9 +25,9 @@ public class Logic {
         System.out.format("Running with k = %d", config.k);
 
 
-        Vector<Entry> trainData = readData(config.train);
+        Vector<Entry> trainData = readData(config.train, config.trainFolder);
 //        calculateFeatures(trainData);
-        Vector<Entry> testData = readData(config.test);
+        Vector<Entry> testData = readData(config.test, config.testFolder);
 //        calculateFeatures(testData);
 
         ArrayList<ClassificationResult> results = runTrainAndTest(trainData, testData);
@@ -44,7 +45,7 @@ public class Logic {
 //        The list should be string-sorted by docID, and the fields are comma separated.
     }
 
-    private Vector<Entry> readData(String dataFile) throws Exception {
+    private Vector<Entry> readData(String dataFile, String wekaFolder) throws Exception {
         Vector<Entry> dataEntries = new Vector<>();
         BufferedReader reader = new BufferedReader(new FileReader(dataFile));
         int counter = 0;
@@ -63,11 +64,15 @@ public class Logic {
 
             // TODO - lowercase all text, and clean text from non letter chars. (in a function?)
             // TODO - lemmatize and stem
-            String[] words_lemmatized = (tokens[2] + " " + tokens[3]).split(" ");
+            String text_lemmatized = tokens[2] + " " + tokens[3];
+            String[] words_lemmatized = text_lemmatized.split(" ");
 //            Vector<Vector<String>> words = openNlp.processText(tokens[2] + " " + tokens[3], true, true);
 
             entry.words = new Vector<>(Arrays.asList(words_lemmatized));
+            entry.text = text_lemmatized;
             dataEntries.add(entry);
+            // write here to weka instead of storing data to entry?
+//            writeEntryToDataFile(entry, wekaFolder);
         }
         reader.close();
         return dataEntries;
@@ -81,14 +86,21 @@ public class Logic {
 
         ArrayList<ClassificationResult> classificationResults = new ArrayList<>();
 
+
+        System.out.format("building classifier:" + LocalDateTime.now());
         classifier.buildClassifier(trainData);
+
+        System.out.format("running classifier on test data: " + LocalDateTime.now());
         double accuracy = 0;
+        int i = 0;
         for (Instance instance: testData) {
             double pred = classifier.classifyInstance(instance);
             if (instance.classValue() == pred) {
                 accuracy++;
             }
 
+            System.out.format("doc %d",i);
+            i++;
             // TODO - somehow retrieve the docId
             String docId = "";
             ClassificationResult result = new ClassificationResult(docId, (int)instance.classValue(), (int)pred);
@@ -271,31 +283,44 @@ public class Logic {
             FileUtils.deleteDirectory(mainFolder);
         }
 
-        // create the train/test folder
+        // this takes a really long time...
         for (Entry entry: data) {
-            String classFolderPath = folder + "/class" + entry.label;
-            File classFolder = new File(classFolderPath);
-            if (!classFolder.exists())
-                Files.createDirectories(Paths.get(classFolderPath));
-            PrintWriter pw = new PrintWriter(folder + "/class" + entry.label + "/doc" + entry.id + ".txt");
-
-            for (String word: entry.words) {
-                if (!word.isEmpty())
-                    pw.print(word + " ");
-            }
-
-//            // using features:
-//            for (String word: entry.features.keySet()){
-//                // write each word to files according to its frequency
-//                Integer num = entry.features.get(word);
-//                for (int j = 0; j < num.intValue(); ++j)
-//                    pw.print(word + " ");
-//            }
-
-            pw.close();
+            writeEntryToDataFile(entry, folder);
+////            String classFolderPath = folder + "/class" + entry.label;
+////            File classFolder = new File(classFolderPath);
+////            if (!classFolder.exists())
+////                Files.createDirectories(Paths.get(classFolderPath));
+//
+//            File file = new File(folder + "/class" + entry.label + "/doc" + entry.id + ".txt");
+//            file.getParentFile().mkdirs();
+//            PrintWriter pw = new PrintWriter(file);
+//
+//            pw.print(entry.text);
+////            for (String word: entry.words) {
+////                if (!word.isEmpty())
+////                    pw.print(word + " ");
+////            }
+//
+////            // using features:
+////            for (String word: entry.features.keySet()){
+////                // write each word to files according to its frequency
+////                Integer num = entry.features.get(word);
+////                for (int j = 0; j < num.intValue(); ++j)
+////                    pw.print(word + " ");
+////            }
+//
+//            pw.close();
         }
     }
 
+    void writeEntryToDataFile(Entry entry, String folder) throws FileNotFoundException {
+        File file = new File(folder + "/class" + entry.label + "/doc" + entry.id + ".txt");
+        file.getParentFile().mkdirs();
+        PrintWriter pw = new PrintWriter(file);
+
+        pw.print(entry.text);
+        pw.close();
+    }
 
     void calculateFeatures(Vector<Entry> entries) throws Exception {
         for(Entry entry: entries){
