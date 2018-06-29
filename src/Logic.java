@@ -7,6 +7,7 @@ import org.apache.commons.io.FileUtils;
 
 import weka.classifiers.Classifier;
 import weka.classifiers.lazy.IBk;
+import weka.core.Attribute;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.TextDirectoryLoader;
@@ -22,36 +23,32 @@ public class Logic {
 
     public void run() throws IOException, Exception {
 
-        System.out.format("Running with k = %d", config.k);
+        System.out.format("Running with k = %d %tT %n", config.k, LocalDateTime.now());
 
+        if(config.recreateWekaDataFolders) {
+            System.out.format("Skipping reading data and creating weka data folders %n");
 
-        Vector<Entry> trainData = readData(config.train, config.trainFolder);
+            Vector<Entry> trainData = readData(config.train);
 //        calculateFeatures(trainData);
-        Vector<Entry> testData = readData(config.test, config.testFolder);
+            Vector<Entry> testData = readData(config.test);
 //        calculateFeatures(testData);
 
-        ArrayList<ClassificationResult> results = runTrainAndTest(trainData, testData);
+            writeDataInWekaFormat(trainData, testData);
+        }
+        ArrayList<ClassificationResult> results = runTrainAndTest();
 
         writeResultsToFile(results);
 
 
     }
 
-    private void writeResultsToFile(ArrayList<ClassificationResult> results) {
-        // TODO - write results to config.outputFile
-//        Your software must write the test-set classification results to the specified output file in the
-//        following format:
-//        DocID, PredictedClassNumber, TrueClassNumber
-//        The list should be string-sorted by docID, and the fields are comma separated.
-    }
-
-    private Vector<Entry> readData(String dataFile, String wekaFolder) throws Exception {
+    private Vector<Entry> readData(String dataFile) throws Exception {
         Vector<Entry> dataEntries = new Vector<>();
         BufferedReader reader = new BufferedReader(new FileReader(dataFile));
         int counter = 0;
         String line;
 
-        System.out.format("reading data from %s", dataFile);
+        System.out.format("reading data from %s%n", dataFile);
         while ((line = reader.readLine()) != null) {
             counter++;
             if (counter % 100 == 0)
@@ -75,7 +72,19 @@ public class Logic {
 //            writeEntryToDataFile(entry, wekaFolder);
         }
         reader.close();
+
+        System.out.format("Done reading data from %s %tT %n", dataFile , LocalDateTime.now());
         return dataEntries;
+    }
+
+    void writeDataInWekaFormat(Vector<Entry> train, Vector<Entry> test) throws Exception {
+
+        // write to directory in weka "format"
+        createDataFolder(train, config.trainFolder);
+        System.out.format("Done creating data folder for train%n");
+
+        createDataFolder(test, config.testFolder);
+        System.out.format("Done creating data folder for test%n");
     }
 
     /*
@@ -86,11 +95,10 @@ public class Logic {
 
         ArrayList<ClassificationResult> classificationResults = new ArrayList<>();
 
-
-        System.out.format("building classifier:" + LocalDateTime.now());
+        System.out.format("building classifier %tT %n", LocalDateTime.now());
         classifier.buildClassifier(trainData);
 
-        System.out.format("running classifier on test data: " + LocalDateTime.now());
+        System.out.format("running classifier on test data%n");
         double accuracy = 0;
         int i = 0;
         for (Instance instance: testData) {
@@ -98,11 +106,16 @@ public class Logic {
             if (instance.classValue() == pred) {
                 accuracy++;
             }
+            System.out.format("num attributes %d%n",instance.numAttributes());
 
-            System.out.format("doc %d",i);
+            System.out.format("doc %d: pred=%f,true=%f%n",i, pred, instance.classValue());
             i++;
+
+            if (i % 100 == 0)
+                System.out.println("" + i + " predicted out of " + testData.numInstances());
+
             // TODO - somehow retrieve the docId
-            String docId = "";
+            String docId = Integer.toString(i);
             ClassificationResult result = new ClassificationResult(docId, (int)instance.classValue(), (int)pred);
             classificationResults.add(result);
 
@@ -111,25 +124,44 @@ public class Logic {
 
         // TODO - print accuracy to console (micro & macro F-score??)
 
-        System.out.format("Classification accuracy is: %f", accuracy);
+        System.out.format("Classification accuracy is: %f%n", accuracy);
 
         return classificationResults;
+    }
+
+
+    private void writeResultsToFile(ArrayList<ClassificationResult> results)  throws IOException {
+        // TODO - write results to config.outputFile
 //        Your software must write the test-set classification results to the specified output file in the
 //        following format:
 //        DocID, PredictedClassNumber, TrueClassNumber
 //        The list should be string-sorted by docID, and the fields are comma separated.
 
+        System.out.println("writing results to file. path=" + config.output);
+        PrintWriter writer = new PrintWriter(config.output);
 
+        for(ClassificationResult res: results){
+//            System.out.format("doc %d: pred=%f,true=%f%n",res.docId, res.predictedClass, res.trueClass);
+            writer.printf("%d, %f, %f%n",res.docId, res.predictedClass, res.trueClass);
+        }
+        writer.close();
     }
 
-    ArrayList<ClassificationResult> runTrainAndTest(Vector<Entry> train, Vector<Entry> test) throws Exception {
-        // write to directory in weka "format"
-        createDataFolder(train, config.trainFolder);
+    ArrayList<ClassificationResult> runTrainAndTest() throws Exception {
 
         // load from weka directory into Instances
         TextDirectoryLoader loader = new TextDirectoryLoader();
+        loader.setOutputFilename(true);
         loader.setDirectory(new File(config.trainFolder));
         Instances dataRaw = loader.getDataSet();
+
+        System.out.format("Done loading train data to weka %tT %n", LocalDateTime.now());
+
+        System.out.format("trainFiltered num attributes before filter %d%n",dataRaw.numAttributes());
+
+        System.out.println("\n0: "+dataRaw.instance(0).attribute(0));
+        System.out.println("\n1: "+dataRaw.instance(0).attribute(1));
+        System.out.println("\n2: "+dataRaw.instance(0).attribute(2));
 
         StringToWordVector filter = new StringToWordVector();
 //        filter.setOptions(weka.core.Utils.splitOptions("-I -T"));
@@ -141,15 +173,19 @@ public class Logic {
 
         Instances trainFiltered = Filter.useFilter(dataRaw, filter);
 
+        // ????????????
         Reorder reorder = new Reorder();
         reorder.setOptions(weka.core.Utils.splitOptions("-R 2-last,first"));
         reorder.setInputFormat(trainFiltered);
         trainFiltered = Filter.useFilter(trainFiltered, reorder);
 
 
-        createDataFolder(test, config.testFolder);
+        System.out.format("trainFiltered num attributes after filter %d%n",trainFiltered.numAttributes());
+
         loader.setDirectory(new File(config.testFolder));
         dataRaw = loader.getDataSet();
+        System.out.format("Done loading test data to weka %tT %n", LocalDateTime.now());
+
         //filter.setInputFormat(dataRaw);
         Instances testFiltered = Filter.useFilter(dataRaw, filter);
         reorder.setInputFormat(testFiltered);
@@ -282,9 +318,16 @@ public class Logic {
         if (mainFolder.exists()) {
             FileUtils.deleteDirectory(mainFolder);
         }
+        int counter = 0;
 
         // this takes a really long time...
         for (Entry entry: data) {
+
+            counter++;
+            if (counter % 100 == 0)
+                System.out.println("" + counter + " files were created");
+
+            System.out.format("writing to weka %s doc %s %tT %n", folder ,entry.id, LocalDateTime.now());
             writeEntryToDataFile(entry, folder);
 ////            String classFolderPath = folder + "/class" + entry.label;
 ////            File classFolder = new File(classFolderPath);

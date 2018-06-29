@@ -41,6 +41,10 @@ public class Configuration {
                 testFolder = line.substring(line.indexOf("=") + 1);
             }
 
+            if (line.startsWith("recreateWekaDataFolders")) {
+                recreateWekaDataFolders = Boolean.valueOf(line.substring(line.indexOf("=") + 1));
+            }
+
 //            if (line.startsWith("truthFile")) {
 //                truth = line.substring(line.indexOf("=") + 1);
 //            }
@@ -56,5 +60,6 @@ public class Configuration {
 
     String trainFolder;
     String testFolder;
+    boolean recreateWekaDataFolders;
 //    String truth;
 }
