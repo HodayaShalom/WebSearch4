@@ -5,13 +5,17 @@ import java.time.LocalDateTime;
 import java.util.*;
 import org.apache.commons.io.FileUtils;
 
+import org.apache.commons.io.FilenameUtils;
 import weka.classifiers.Classifier;
 import weka.classifiers.lazy.IBk;
+import weka.classifiers.meta.FilteredClassifier;
 import weka.core.Attribute;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.TextDirectoryLoader;
 import weka.filters.Filter;
+import weka.filters.MultiFilter;
+import weka.filters.unsupervised.attribute.Remove;
 import weka.filters.unsupervised.attribute.Reorder;
 import weka.filters.unsupervised.attribute.StringToWordVector;
 
@@ -108,15 +112,27 @@ public class Logic {
             }
             System.out.format("num attributes %d%n",instance.numAttributes());
 
+
+            System.out.println("\n0: "+instance.attribute(0) + "value: " + instance.stringValue(0)); // text
+            System.out.println("\n1: "+instance.attribute(1) + "value: " + instance.stringValue(1)); // filename
+            System.out.println("\n2: "+instance.attribute(2) + "value: " + instance.stringValue(2)); // class
+
+            System.out.print("ID: " + testData.instance(i).value(0));
+            System.out.print(", actual: " + testData.classAttribute().value((int) instance.classValue()));
+            System.out.println(", predicted: " + testData.classAttribute().value((int) pred));
+
             System.out.format("doc %d: pred=%f,true=%f%n",i, pred, instance.classValue());
             i++;
 
             if (i % 100 == 0)
                 System.out.println("" + i + " predicted out of " + testData.numInstances());
 
-            // TODO - somehow retrieve the docId
-            String docId = Integer.toString(i);
-            ClassificationResult result = new ClassificationResult(docId, (int)instance.classValue(), (int)pred);
+            // TODO - somehow retrieve the docId - DONE??
+
+            String docId = FilenameUtils.getBaseName(instance.stringValue(1)).replaceFirst("^doc", "");
+            Integer predClassInt = Integer.parseInt(testData.classAttribute().value((int) pred).replaceFirst("^class", ""));
+            Integer trueClassInt = Integer.parseInt(testData.classAttribute().value((int) instance.classValue()).replaceFirst("^class", ""));
+            ClassificationResult result = new ClassificationResult(docId, trueClassInt, predClassInt);
             classificationResults.add(result);
 
         }
@@ -154,6 +170,7 @@ public class Logic {
         loader.setOutputFilename(true);
         loader.setDirectory(new File(config.trainFolder));
         Instances dataRaw = loader.getDataSet();
+        Instances dataRawTrain = dataRaw;
 
         System.out.format("Done loading train data to weka %tT %n", LocalDateTime.now());
 
@@ -163,15 +180,19 @@ public class Logic {
         System.out.println("\n1: "+dataRaw.instance(0).attribute(1));
         System.out.println("\n2: "+dataRaw.instance(0).attribute(2));
 
-        StringToWordVector filter = new StringToWordVector();
+
+        Attribute att = dataRawTrain.attribute("filename");
+
+        // TODO - use filter to lowercase all words, stemming, etc.. check documentation
+        StringToWordVector tfIdfFilter = new StringToWordVector();
 //        filter.setOptions(weka.core.Utils.splitOptions("-I -T"));
         // for TFIDF weighting function
-        filter.setTFTransform(true);
-        filter.setIDFTransform(true);
+        tfIdfFilter.setTFTransform(true);
+        tfIdfFilter.setIDFTransform(true);
         // use stemmer here? stop words?
-        filter.setInputFormat(dataRaw);
+        tfIdfFilter.setInputFormat(dataRaw);
 
-        Instances trainFiltered = Filter.useFilter(dataRaw, filter);
+        Instances trainFiltered = Filter.useFilter(dataRaw, tfIdfFilter);
 
         // ????????????
         Reorder reorder = new Reorder();
@@ -180,27 +201,47 @@ public class Logic {
         trainFiltered = Filter.useFilter(trainFiltered, reorder);
 
 
+
         System.out.format("trainFiltered num attributes after filter %d%n",trainFiltered.numAttributes());
 
         loader.setDirectory(new File(config.testFolder));
         dataRaw = loader.getDataSet();
+        Instances dataRawTest = dataRaw;
         System.out.format("Done loading test data to weka %tT %n", LocalDateTime.now());
 
         //filter.setInputFormat(dataRaw);
-        Instances testFiltered = Filter.useFilter(dataRaw, filter);
+        Instances testFiltered = Filter.useFilter(dataRaw, tfIdfFilter);
         reorder.setInputFormat(testFiltered);
         testFiltered = Filter.useFilter(testFiltered, reorder);
 
 //        Vector<Stat> stats = new Vector<Stat>();
 
 
+        // TODO - maybe use normalization?? check if it improves results
+
+        // TODO 2 - run here all possible k's, for performance (only for us, not for submission. otherwise it would take forever to run everything)
         /// kNN - no normalization
         Classifier classifier = new IBk();
         String[] options = weka.core.Utils.splitOptions(
                 "-A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance -D\\\"\"");
         ((IBk) classifier).setOptions(options);
         ((IBk) classifier).setKNN(config.k);
-        return testClassifier(classifier, trainFiltered, testFiltered);
+//        return testClassifier(classifier, trainFiltered, testFiltered);
+
+
+        // TODO - check filters actually do what they are supposed to do (tfidf on the words, without the filename attribute)
+        Remove rm = new Remove();
+        rm.setAttributeIndices("2"); // ? remove filename attribute
+
+        MultiFilter multifilter = new MultiFilter();
+        multifilter.setFilters(new Filter[]{rm, tfIdfFilter, reorder});
+
+        FilteredClassifier fc = new FilteredClassifier();
+        fc.setFilter(multifilter);
+        fc.setClassifier(classifier);
+
+
+        return testClassifier(fc, dataRawTrain, dataRawTest);
 
 //        /// kNN - no normalization (k = 3)
 //        classifier = new IBk();
