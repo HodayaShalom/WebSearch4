@@ -7,6 +7,10 @@ public class ClassificationResult {
         this.predictedClass = predictedClass;
     }
 
+    public String getDocId(){
+        return docId;
+    }
+
     int trueClass;
     int predictedClass;
     String docId;

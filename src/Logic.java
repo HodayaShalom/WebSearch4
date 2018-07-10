@@ -137,6 +137,7 @@ public class Logic {
             // TODO - somehow retrieve the docId - DONE??
 
             String docId = FilenameUtils.getBaseName(instance.stringValue(1)).replaceFirst("^doc", "");
+//            docId = Integer.toString(i);
             Integer predClassInt = Integer.parseInt(testData.classAttribute().value((int) pred).replaceFirst("^class", ""));
             Integer trueClassInt = Integer.parseInt(testData.classAttribute().value((int) instance.classValue()).replaceFirst("^class", ""));
             ClassificationResult result = new ClassificationResult(docId, trueClassInt, predClassInt);
@@ -155,7 +156,7 @@ public class Logic {
 
 
     private void writeResultsToFile(ArrayList<ClassificationResult> results)  throws IOException {
-        // TODO - write results to config.outputFile
+
 //        Your software must write the test-set classification results to the specified output file in the
 //        following format:
 //        DocID, PredictedClassNumber, TrueClassNumber
@@ -164,6 +165,7 @@ public class Logic {
         System.out.println("writing results to file. path=" + config.output);
         PrintWriter writer = new PrintWriter(config.output);
 
+        results.sort(Comparator.comparing(ClassificationResult::getDocId));
         for(ClassificationResult res: results){
 //            System.out.format("doc %d: pred=%f,true=%f%n",res.docId, res.predictedClass, res.trueClass);
             writer.printf("%s, %d, %d%n",res.docId, res.predictedClass, res.trueClass);
@@ -176,20 +178,20 @@ public class Logic {
         // load from weka directory into Instances
         TextDirectoryLoader loader = new TextDirectoryLoader();
         loader.setOutputFilename(true);
-        loader.setDirectory(new File(config.trainFolder));
-        Instances dataRaw = loader.getDataSet();
-        Instances dataRawTrain = dataRaw;
 
+        loader.setDirectory(new File(config.trainFolder));
+        Instances dataRawTrain = loader.getDataSet();
         System.out.format("Done loading train data to weka %tT %n", LocalDateTime.now());
 
-        System.out.format("trainFiltered num attributes before filter %d%n",dataRaw.numAttributes());
+        loader.setDirectory(new File(config.testFolder));
+        Instances dataRawTest = loader.getDataSet();
+        System.out.format("Done loading test data to weka %tT %n", LocalDateTime.now());
 
-        System.out.println("\n0: "+dataRaw.instance(0).attribute(0));
-        System.out.println("\n1: "+dataRaw.instance(0).attribute(1));
-        System.out.println("\n2: "+dataRaw.instance(0).attribute(2));
-
-
-        Attribute att = dataRawTrain.attribute("filename");
+        System.out.format("trainFiltered num attributes before filter %d%n",dataRawTrain.numAttributes());
+        System.out.println("\n0: "+dataRawTrain.instance(0).attribute(0));
+        System.out.println("\n1: "+dataRawTrain.instance(0).attribute(1));
+        System.out.println("\n2: "+dataRawTrain.instance(0).attribute(2));
+//        Attribute att = dataRawTrain.attribute("filename");
 
         // TODO - use filter to lowercase all words, stemming, etc.. check documentation
         StringToWordVector tfIdfFilter = new StringToWordVector();
@@ -197,30 +199,29 @@ public class Logic {
         // for TFIDF weighting function
         tfIdfFilter.setTFTransform(true);
         tfIdfFilter.setIDFTransform(true);
-        // use stemmer here? stop words?
-        tfIdfFilter.setInputFormat(dataRaw);
+        // TODO - use stemmer here? stop words?
+//        tfIdfFilter.setInputFormat(dataRaw);
+//        Instances trainFiltered = Filter.useFilter(dataRaw, tfIdfFilter);
 
-        Instances trainFiltered = Filter.useFilter(dataRaw, tfIdfFilter);
-
-        // ????????????
         Reorder reorder = new Reorder();
         reorder.setOptions(weka.core.Utils.splitOptions("-R 2-last,first"));
-        reorder.setInputFormat(trainFiltered);
-        trainFiltered = Filter.useFilter(trainFiltered, reorder);
+//        reorder.setInputFormat(trainFiltered);
+//        trainFiltered = Filter.useFilter(trainFiltered, reorder);
 
+//        System.out.format("trainFiltered num attributes after filter %d%n",trainFiltered.numAttributes());
 
+        // TODO - check filters actually do what they are supposed to do (tfidf on the words, without the filename attribute)
+        Remove rm = new Remove();
+        rm.setAttributeIndices("2"); // ? remove filename attribute
 
-        System.out.format("trainFiltered num attributes after filter %d%n",trainFiltered.numAttributes());
+        MultiFilter multifilter = new MultiFilter();
+        multifilter.setInputFormat(dataRawTrain);
+        multifilter.setFilters(new Filter[]{rm, tfIdfFilter, reorder});
 
-        loader.setDirectory(new File(config.testFolder));
-        dataRaw = loader.getDataSet();
-        Instances dataRawTest = dataRaw;
-        System.out.format("Done loading test data to weka %tT %n", LocalDateTime.now());
-
-        //filter.setInputFormat(dataRaw);
-        Instances testFiltered = Filter.useFilter(dataRaw, tfIdfFilter);
-        reorder.setInputFormat(testFiltered);
-        testFiltered = Filter.useFilter(testFiltered, reorder);
+        //filter.setInputFormat(dataRawTest);
+//        Instances testFiltered = Filter.useFilter(dataRawTest, tfIdfFilter);
+//        reorder.setInputFormat(testFiltered);
+//        testFiltered = Filter.useFilter(testFiltered, reorder);
 
 //        Vector<Stat> stats = new Vector<Stat>();
 
@@ -236,13 +237,6 @@ public class Logic {
         ((IBk) classifier).setKNN(config.k);
 //        return testClassifier(classifier, trainFiltered, testFiltered);
 
-
-        // TODO - check filters actually do what they are supposed to do (tfidf on the words, without the filename attribute)
-        Remove rm = new Remove();
-        rm.setAttributeIndices("2"); // ? remove filename attribute
-
-        MultiFilter multifilter = new MultiFilter();
-        multifilter.setFilters(new Filter[]{rm, tfIdfFilter, reorder});
 
         FilteredClassifier fc = new FilteredClassifier();
         fc.setFilter(multifilter);
@@ -414,34 +408,7 @@ public class Logic {
         pw.close();
     }
 
-    void calculateFeatures(Vector<Entry> entries) throws Exception {
-        for(Entry entry: entries){
-            // calculate frequency for all lemmas, using a dictionary for each entry, where (key = lemma, value = frequency in doc)
-            for (int i = 0; i < entry.words.size(); ++i) {
-                addFeature(entry.features, Utils.cleanWord(entry.words.get(i)));
-            }
-        }
-    }
-
-    /*
-     * adding feature to the "bag" of feature, with it's frequency
-     */
-    void addFeature(HashMap<String, Integer> features, String feature) {
-        Integer num = features.get(feature);
-        if (num == null)
-            features.put(feature, new Integer(1));
-        else {
-            features.put(feature, new Integer(num.intValue() + 1));
-        }
-    }
-
 
     // members:
     Configuration config;
-//    StopwordAnalyzerBase analyzer;
-//    Directory indexDir = new RAMDirectory();
-//    IndexSearcher indexSearcher;
-//    IndexWriter writer;
-//    Similarity similarity;
-//    Evaluator evaluator = null;
 }
