@@ -1,6 +1,6 @@
-import org.apache.lucene.document.Document;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.IndexSearcher;
+//import org.apache.lucene.document.Document;
+//import org.apache.lucene.search.ScoreDoc;
+//import org.apache.lucene.search.IndexSearcher;
 
 import java.io.File;
 import java.io.IOException;

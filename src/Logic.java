@@ -3,6 +3,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
+
+//import opennlp.tools.stemmer.PorterStemmer;
 import org.apache.commons.io.FileUtils;
 
 import org.apache.commons.io.FilenameUtils;
@@ -18,6 +20,7 @@ import weka.filters.MultiFilter;
 import weka.filters.unsupervised.attribute.Remove;
 import weka.filters.unsupervised.attribute.Reorder;
 import weka.filters.unsupervised.attribute.StringToWordVector;
+import weka.core.stemmers.SnowballStemmer;
 
 public class Logic {
 
@@ -64,13 +67,21 @@ public class Logic {
             entry.label = Integer.parseInt(tokens[1]);
 
             // TODO - lowercase all text, and clean text from non letter chars. (in a function?)
+
+            String text = tokens[2] + " " + tokens[3];
+
+            text = Utils.StripPunctuationsAndSigns(text);
+
             // TODO - lemmatize and stem
-            String text_lemmatized = tokens[2] + " " + tokens[3];
-            String[] words_lemmatized = text_lemmatized.split(" ");
+
+//            PorterStemmer ps = new PorterStemmer();
+//
+//            ps.
+//            String[] words = text.split(" ");
 //            Vector<Vector<String>> words = openNlp.processText(tokens[2] + " " + tokens[3], true, true);
 
-            entry.words = new Vector<>(Arrays.asList(words_lemmatized));
-            entry.text = text_lemmatized;
+//            entry.words = new Vector<>(Arrays.asList(words));
+            entry.text = text;
             dataEntries.add(entry);
             // write here to weka instead of storing data to entry?
 //            writeEntryToDataFile(entry, wekaFolder);
@@ -186,12 +197,18 @@ public class Logic {
 //        Attribute att = dataRawTrain.attribute("filename");
 
         // TODO - use filter to lowercase all words, stemming, etc.. check documentation
-        StringToWordVector tfIdfFilter = new StringToWordVector();
+        StringToWordVector stringToWordVectorFilter = new StringToWordVector();
 //        filter.setOptions(weka.core.Utils.splitOptions("-I -T"));
         // for TFIDF weighting function
-        tfIdfFilter.setTFTransform(true);
-        tfIdfFilter.setIDFTransform(true);
+        stringToWordVectorFilter.setTFTransform(true);
+        stringToWordVectorFilter.setIDFTransform(true);
+        stringToWordVectorFilter.setLowerCaseTokens(true);
+
         // TODO - use stemmer here? stop words?
+        SnowballStemmer snowball=new SnowballStemmer();
+//        snowball.setStemmer("porter");
+        stringToWordVectorFilter.setStemmer(snowball);
+//        stringToWordVectorFilter.setStopwordsHandler();
 //        tfIdfFilter.setInputFormat(dataRaw);
 //        Instances trainFiltered = Filter.useFilter(dataRaw, tfIdfFilter);
 
@@ -208,7 +225,7 @@ public class Logic {
 
         MultiFilter multifilter = new MultiFilter();
         multifilter.setInputFormat(dataRawTrain);
-        multifilter.setFilters(new Filter[]{rm, tfIdfFilter, reorder});
+        multifilter.setFilters(new Filter[]{rm, stringToWordVectorFilter, reorder});
 
         //filter.setInputFormat(dataRawTest);
 //        Instances testFiltered = Filter.useFilter(dataRawTest, tfIdfFilter);
@@ -364,30 +381,6 @@ public class Logic {
 
             System.out.format("writing to weka %s doc %s %tT %n", folder ,entry.id, LocalDateTime.now());
             writeEntryToDataFile(entry, folder);
-////            String classFolderPath = folder + "/class" + entry.label;
-////            File classFolder = new File(classFolderPath);
-////            if (!classFolder.exists())
-////                Files.createDirectories(Paths.get(classFolderPath));
-//
-//            File file = new File(folder + "/class" + entry.label + "/doc" + entry.id + ".txt");
-//            file.getParentFile().mkdirs();
-//            PrintWriter pw = new PrintWriter(file);
-//
-//            pw.print(entry.text);
-////            for (String word: entry.words) {
-////                if (!word.isEmpty())
-////                    pw.print(word + " ");
-////            }
-//
-////            // using features:
-////            for (String word: entry.features.keySet()){
-////                // write each word to files according to its frequency
-////                Integer num = entry.features.get(word);
-////                for (int j = 0; j < num.intValue(); ++j)
-////                    pw.print(word + " ");
-////            }
-//
-//            pw.close();
         }
     }
 
