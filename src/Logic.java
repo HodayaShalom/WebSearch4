@@ -105,8 +105,15 @@ public class Logic {
         System.out.format("running classifier on test data%n");
         double accuracy = 0;
         int i = 0;
+        int numOfClasses = 12;
+
+        Evaluator evaluator = new Evaluator(numOfClasses);
+
         for (Instance instance: testData) {
             double pred = classifier.classifyInstance(instance);
+
+            evaluator.Eval(instance.classValue(), pred);
+
             if (instance.classValue() == pred) {
                 accuracy++;
             }
@@ -136,6 +143,7 @@ public class Logic {
             classificationResults.add(result);
 
         }
+        System.out.println("macro fscore= " + evaluator.CalcMacroAvarage() + " micro fscore= " + evaluator.CalcMicroAvarage());
         accuracy = accuracy / (double) testData.numInstances();
 
         // TODO - print accuracy to console (micro & macro F-score??)
@@ -158,7 +166,7 @@ public class Logic {
 
         for(ClassificationResult res: results){
 //            System.out.format("doc %d: pred=%f,true=%f%n",res.docId, res.predictedClass, res.trueClass);
-            writer.printf("%d, %f, %f%n",res.docId, res.predictedClass, res.trueClass);
+            writer.printf("%s, %d, %d%n",res.docId, res.predictedClass, res.trueClass);
         }
         writer.close();
     }
