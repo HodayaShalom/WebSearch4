@@ -45,8 +45,6 @@ public class Logic {
         ArrayList<ClassificationResult> results = runTrainAndTest();
 
         writeResultsToFile(results);
-
-
     }
 
     private Vector<Entry> readData(String dataFile) throws Exception {
@@ -106,7 +104,7 @@ public class Logic {
      * build a model and test a specific classifier on a given testset.
      * returns the accuracy running on the test and train sets.
      */
-    ArrayList<ClassificationResult> testClassifier(Classifier classifier, Instances trainData, Instances testData) throws Exception {
+    ArrayList<ClassificationResult> testClassifier(Classifier classifier, Instances trainData, Instances testData, int k) throws Exception {
 
         ArrayList<ClassificationResult> classificationResults = new ArrayList<>();
 
@@ -116,23 +114,30 @@ public class Logic {
         System.out.format("running classifier on test data%n");
         double accuracy = 0;
         int i = 0;
+        int numOfClasses = 12;
+
+        Evaluator evaluator = new Evaluator(numOfClasses);
+
         for (Instance instance: testData) {
             double pred = classifier.classifyInstance(instance);
+
+            evaluator.Eval(instance.classValue(), pred);
+
             if (instance.classValue() == pred) {
                 accuracy++;
             }
-            System.out.format("num attributes %d%n",instance.numAttributes());
+//            System.out.format("num attributes %d%n",instance.numAttributes());
+//
+//
+//            System.out.println("\n0: "+instance.attribute(0) + "value: " + instance.stringValue(0)); // text
+//            System.out.println("\n1: "+instance.attribute(1) + "value: " + instance.stringValue(1)); // filename
+//            System.out.println("\n2: "+instance.attribute(2) + "value: " + instance.stringValue(2)); // class
+//
+//            System.out.print("ID: " + testData.instance(i).value(0));
+//            System.out.print(", actual: " + testData.classAttribute().value((int) instance.classValue()));
+//            System.out.println(", predicted: " + testData.classAttribute().value((int) pred));
 
-
-            System.out.println("\n0: "+instance.attribute(0) + "value: " + instance.stringValue(0)); // text
-            System.out.println("\n1: "+instance.attribute(1) + "value: " + instance.stringValue(1)); // filename
-            System.out.println("\n2: "+instance.attribute(2) + "value: " + instance.stringValue(2)); // class
-
-            System.out.print("ID: " + testData.instance(i).value(0));
-            System.out.print(", actual: " + testData.classAttribute().value((int) instance.classValue()));
-            System.out.println(", predicted: " + testData.classAttribute().value((int) pred));
-
-            System.out.format("doc %d: pred=%f,true=%f%n",i, pred, instance.classValue());
+            //System.out.format("doc %d: pred=%f,true=%f%n",i, pred, instance.classValue());
             i++;
 
             if (i % 100 == 0)
@@ -148,6 +153,7 @@ public class Logic {
             classificationResults.add(result);
 
         }
+        System.out.println("k=" + k + " macro fscore= " + evaluator.CalcMacroAvarage() + " micro fscore= " + evaluator.CalcMicroAvarage());
         accuracy = accuracy / (double) testData.numInstances();
 
         // TODO - print accuracy to console (micro & macro F-score??)
@@ -190,10 +196,10 @@ public class Logic {
         Instances dataRawTest = loader.getDataSet();
         System.out.format("Done loading test data to weka %tT %n", LocalDateTime.now());
 
-        System.out.format("trainFiltered num attributes before filter %d%n",dataRawTrain.numAttributes());
-        System.out.println("\n0: "+dataRawTrain.instance(0).attribute(0));
-        System.out.println("\n1: "+dataRawTrain.instance(0).attribute(1));
-        System.out.println("\n2: "+dataRawTrain.instance(0).attribute(2));
+        System.out.format("trainFiltered num attributes before filter %d%n", dataRawTrain.numAttributes());
+        System.out.println("\n0: " + dataRawTrain.instance(0).attribute(0));
+        System.out.println("\n1: " + dataRawTrain.instance(0).attribute(1));
+        System.out.println("\n2: " + dataRawTrain.instance(0).attribute(2));
 //        Attribute att = dataRawTrain.attribute("filename");
 
         // TODO - use filter to lowercase all words, stemming, etc.. check documentation
@@ -239,21 +245,59 @@ public class Logic {
 
         // TODO 2 - run here all possible k's, for performance (only for us, not for submission. otherwise it would take forever to run everything)
         /// kNN - no normalization
-        Classifier classifier = new IBk();
-        String[] options = weka.core.Utils.splitOptions(
-                "-A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance -D\\\"\"");
-        ((IBk) classifier).setOptions(options);
-        ((IBk) classifier).setKNN(config.k);
+        ArrayList<Integer> kList = getKList(false);
+
+        ArrayList<ClassificationResult> results = null;
+
+        for (Integer k: kList) {
+            Classifier classifier = new IBk();
+            String[] options = weka.core.Utils.splitOptions(
+                    "-A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance -D\\\"\"");
+            ((IBk) classifier).setOptions(options);
+            ((IBk) classifier).setKNN(k);
 //        return testClassifier(classifier, trainFiltered, testFiltered);
 
 
-        FilteredClassifier fc = new FilteredClassifier();
-        fc.setFilter(multifilter);
-        fc.setClassifier(classifier);
+            FilteredClassifier fc = new FilteredClassifier();
+            fc.setFilter(multifilter);
+            fc.setClassifier(classifier);
 
+           results = testClassifier(fc, dataRawTrain, dataRawTest, k);
+        }
 
-        return testClassifier(fc, dataRawTrain, dataRawTest);
+        // return results of last k run
+        return results;
+    }
 
+    ArrayList<Integer> getKList(boolean prod){
+            // PRODUCTION LIST
+            ArrayList<Integer> kListProd = new ArrayList<Integer>() {{
+                add(config.k);
+            }};
+
+            // TESTING LIST
+            ArrayList<Integer> kListTest = new ArrayList<Integer>() {{
+                add(1);
+                add(2);
+                add(3);
+                add(4);
+                add(5);
+                add(6);
+                add(7);
+                add(8);
+                add(9);
+                add(10);
+                add(11);
+                add(12);
+
+            }};
+            if(prod){
+                return kListProd;
+            }
+            else {
+                return kListTest;
+            }
+        }
 //        /// kNN - no normalization (k = 3)
 //        classifier = new IBk();
 //        options = weka.core.Utils.splitOptions("-K 3 -A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance -D\\\"\"");
@@ -359,7 +403,7 @@ public class Logic {
 //        stats.add(stat);
 //
 //        return stats;
-    }
+
 
 
     /*
