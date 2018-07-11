@@ -143,7 +143,7 @@ public class Logic {
             i++;
 
             if (i % 100 == 0)
-                System.out.println("" + i + " predicted out of " + testData.numInstances());
+                System.out.format("%d predicted out of %d %tT %n", i, testData.numInstances(), LocalDateTime.now());
 
             // TODO - somehow retrieve the docId - DONE??
 
@@ -156,7 +156,7 @@ public class Logic {
 
         }
 
-        System.out.format("k=%d:%n micro F-score=%f%n macro F-score=%f%n",k, evaluator.CalcMicroAvarage(), evaluator.CalcMacroAvarage());
+        System.out.format("k=%d:%n micro F-score=%f%n macro F-score=%f %tT %n",k, evaluator.CalcMicroAvarage(), evaluator.CalcMacroAvarage(),LocalDateTime.now());
 //        System.out.println("k=" + k + " macro fscore= " + evaluator.CalcMacroAvarage() + " micro fscore= " + evaluator.CalcMicroAvarage());
         accuracy = accuracy / (double) testData.numInstances();
 
