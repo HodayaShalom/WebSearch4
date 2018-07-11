@@ -33,7 +33,6 @@ public class Logic {
         System.out.format("Running with k = %d %tT %n", config.k, LocalDateTime.now());
 
         if(config.recreateWekaDataFolders) {
-            System.out.format("Skipping reading data and creating weka data folders %n");
 
             Vector<Entry> trainData = readData(config.train);
 //        calculateFeatures(trainData);
@@ -41,6 +40,9 @@ public class Logic {
 //        calculateFeatures(testData);
 
             writeDataInWekaFormat(trainData, testData);
+        }
+        else{
+            System.out.format("Skipping reading data and creating weka data folders %n");
         }
         ArrayList<ClassificationResult> results = runTrainAndTest();
 
@@ -68,7 +70,7 @@ public class Logic {
 
             String text = tokens[2] + " " + tokens[3];
 
-            text = Utils.StripPunctuationsAndSigns(text);
+//            text = Utils.StripPunctuationsAndSigns(text);
 
             // TODO - lemmatize and stem
 
@@ -153,7 +155,9 @@ public class Logic {
             classificationResults.add(result);
 
         }
-        System.out.println("k=" + k + " macro fscore= " + evaluator.CalcMacroAvarage() + " micro fscore= " + evaluator.CalcMicroAvarage());
+
+        System.out.format("k=%d:%n micro F-score=%f%n macro F-score=%f%n",k, evaluator.CalcMicroAvarage(), evaluator.CalcMacroAvarage());
+//        System.out.println("k=" + k + " macro fscore= " + evaluator.CalcMacroAvarage() + " micro fscore= " + evaluator.CalcMicroAvarage());
         accuracy = accuracy / (double) testData.numInstances();
 
         // TODO - print accuracy to console (micro & macro F-score??)
@@ -218,6 +222,7 @@ public class Logic {
 //        tfIdfFilter.setInputFormat(dataRaw);
 //        Instances trainFiltered = Filter.useFilter(dataRaw, tfIdfFilter);
 
+
         Reorder reorder = new Reorder();
         reorder.setOptions(weka.core.Utils.splitOptions("-R 2-last,first"));
 //        reorder.setInputFormat(trainFiltered);
@@ -226,6 +231,7 @@ public class Logic {
 //        System.out.format("trainFiltered num attributes after filter %d%n",trainFiltered.numAttributes());
 
         // TODO - check filters actually do what they are supposed to do (tfidf on the words, without the filename attribute)
+        // filter to remove the attribute filename from, so that it won't affect the results
         Remove rm = new Remove();
         rm.setAttributeIndices("2"); // ? remove filename attribute
 
@@ -252,7 +258,7 @@ public class Logic {
         for (Integer k: kList) {
             Classifier classifier = new IBk();
             String[] options = weka.core.Utils.splitOptions(
-                    "-A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance -D\\\"\"");
+                    "-A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance\\\"\"");
             ((IBk) classifier).setOptions(options);
             ((IBk) classifier).setKNN(k);
 //        return testClassifier(classifier, trainFiltered, testFiltered);
@@ -277,18 +283,14 @@ public class Logic {
 
             // TESTING LIST
             ArrayList<Integer> kListTest = new ArrayList<Integer>() {{
-                add(1);
-                add(2);
-                add(3);
-                add(4);
-                add(5);
-                add(6);
-                add(7);
-                add(8);
-                add(9);
-                add(10);
-                add(11);
-                add(12);
+//                add(1);
+//                add(3);
+//                add(5);
+//                add(7);
+//                add(10);
+                add(20);
+//                add(30);
+//                add(50);
 
             }};
             if(prod){

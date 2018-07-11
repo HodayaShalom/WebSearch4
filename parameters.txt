@@ -2,13 +2,14 @@ trainFile=data/train_short.csv
 testFile=data/test_short.csv
 outputFile=out/out1.csv 
 k=5
-trainFolderWeka=c:/Dev/wekaFolders_partial/train
-testFolderWeka=c:/Dev/wekaFolders_partial/test
-recreateWekaDataFolders=true
 
-1trainFile=data/train.csv
-1testFile=data/test.csv
-1trainFolderWeka=c:/Dev/wekaFolders/train
-1testFolderWeka=c:/Dev/wekaFolders/test
-1recreateWekaDataFolders=false
+1trainFolderWeka=c:/Dev/wekaFolders_partial/train
+1testFolderWeka=c:/Dev/wekaFolders_partial/test
+1recreateWekaDataFolders=true
+
+trainFile=data/train.csv
+testFile=data/test.csv
+trainFolderWeka=c:/Dev/wekaFolders/train
+testFolderWeka=c:/Dev/wekaFolders/test
+recreateWekaDataFolders=false
 
