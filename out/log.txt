@@ -1,17 +1,1 @@
-running 08:55:42
-Done loading train data to weka 08:55:42 
-Done loading test data to weka 08:55:42 
-100 predicted out of 1084 08:55:43 
-200 predicted out of 1084 08:55:43 
-300 predicted out of 1084 08:55:43 
-400 predicted out of 1084 08:55:44 
-500 predicted out of 1084 08:55:44 
-600 predicted out of 1084 08:55:44 
-700 predicted out of 1084 08:55:44 
-800 predicted out of 1084 08:55:44 
-900 predicted out of 1084 08:55:44 
-1000 predicted out of 1084 08:55:44 
-k=20:
- micro F-score=0.916052
- macro F-score=0.126865 08:55:44 
-Classification accuracy is: 0.916052
+running 09:09:49

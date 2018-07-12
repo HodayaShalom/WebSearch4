@@ -31,26 +31,33 @@ public class Logic {
 
     public void run() throws IOException, Exception {
 
-        System.out.format("Running with k = %d %tT %n", config.k, LocalDateTime.now());
+        try {
 
-        logwriter = new PrintWriter("out/log.txt");
+            System.out.format("Running with k = %d %tT %n", config.k, LocalDateTime.now());
 
-        logwriter.printf("running %tT%n",LocalDateTime.now());
-        if(config.recreateWekaDataFolders) {
+            logwriter = new PrintWriter("out/log.txt");
 
-            Vector<Entry> trainData = readData(config.train);
+            logwriter.printf("running %tT%n", LocalDateTime.now());
+
+            logwriter.flush();
+            if (config.recreateWekaDataFolders) {
+
+                Vector<Entry> trainData = readData(config.train);
 //        calculateFeatures(trainData);
-            Vector<Entry> testData = readData(config.test);
+                Vector<Entry> testData = readData(config.test);
 //        calculateFeatures(testData);
 
-            writeDataInWekaFormat(trainData, testData);
-        }
-        else{
-            System.out.format("Skipping reading data and creating weka data folders %n");
-        }
-        ArrayList<ClassificationResult> results = runTrainAndTest();
+                writeDataInWekaFormat(trainData, testData);
+            } else {
+                System.out.format("Skipping reading data and creating weka data folders %n");
+            }
+            ArrayList<ClassificationResult> results = runTrainAndTest();
 
-        writeResultsToFile(results);
+            writeResultsToFile(results);
+        }
+        finally {
+            logwriter.close();
+        }
     }
 
     private Vector<Entry> readData(String dataFile) throws Exception {
@@ -112,30 +119,32 @@ public class Logic {
      */
     ArrayList<ClassificationResult> testClassifier(Classifier classifier, Instances trainData, Instances testData, int k) throws Exception {
 
-        ArrayList<ClassificationResult> classificationResults = new ArrayList<>();
 
-        System.out.format("building classifier %tT %n", LocalDateTime.now());
-        classifier.buildClassifier(trainData);
+            ArrayList<ClassificationResult> classificationResults = new ArrayList<>();
 
-        System.out.format("running classifier on test data%n");
-        double accuracy = 0;
-        int i = 0;
-        int numOfClasses = 12;
+            System.out.format("building classifier %tT %n", LocalDateTime.now());
+            classifier.buildClassifier(trainData);
 
-        Evaluator evaluator = new Evaluator(numOfClasses);
+            System.out.format("running classifier on test data%n");
+            double accuracy = 0;
+            int i = 0;
+            int numOfClasses = 12;
+
+            Evaluator evaluator = new Evaluator(numOfClasses);
 //        PrintWriter logwriter = new PrintWriter("out/log.txt");
-        PrintWriter writer2 = new PrintWriter("out/out_intermediate.csv");
+            PrintWriter writer2 = new PrintWriter("out/out_intermediate.csv");
 //
+        try {
 //            writer.printf("%s, %d, %d%n",res.docId, res.predictedClass, res.trueClass);
 
-        for (Instance instance: testData) {
-            double pred = classifier.classifyInstance(instance);
+            for (Instance instance : testData) {
+                double pred = classifier.classifyInstance(instance);
 
-            evaluator.Eval(instance.classValue(), pred);
+                evaluator.Eval(instance.classValue(), pred);
 
-            if (instance.classValue() == pred) {
-                accuracy++;
-            }
+                if (instance.classValue() == pred) {
+                    accuracy++;
+                }
 //            System.out.format("num attributes %d%n",instance.numAttributes());
 //
 //
@@ -147,44 +156,49 @@ public class Logic {
 //            System.out.print(", actual: " + testData.classAttribute().value((int) instance.classValue()));
 //            System.out.println(", predicted: " + testData.classAttribute().value((int) pred));
 
-            //System.out.format("doc %d: pred=%f,true=%f%n",i, pred, instance.classValue());
-            i++;
+                //System.out.format("doc %d: pred=%f,true=%f%n",i, pred, instance.classValue());
+                i++;
 
-            if (i % 100 == 0) {
-                System.out.format("%d predicted out of %d %tT %n", i, testData.numInstances(), LocalDateTime.now());
-                logwriter.printf("%d predicted out of %d %tT %n", i, testData.numInstances(), LocalDateTime.now());
-            }
-            // TODO - somehow retrieve the docId - DONE??
+                if (i % 100 == 0) {
+                    System.out.format("%d predicted out of %d %tT %n", i, testData.numInstances(), LocalDateTime.now());
+                    logwriter.printf("%d predicted out of %d %tT %n", i, testData.numInstances(), LocalDateTime.now());
+                    logwriter.flush();
+                }
+                // TODO - somehow retrieve the docId - DONE??
 
-            String docId = FilenameUtils.getBaseName(instance.stringValue(1)).replaceFirst("^doc", "");
+                String docId = FilenameUtils.getBaseName(instance.stringValue(1)).replaceFirst("^doc", "");
 //            docId = Integer.toString(i);
-            Integer predClassInt = Integer.parseInt(testData.classAttribute().value((int) pred).replaceFirst("^class", ""));
-            Integer trueClassInt = Integer.parseInt(testData.classAttribute().value((int) instance.classValue()).replaceFirst("^class", ""));
-            ClassificationResult result = new ClassificationResult(docId, trueClassInt, predClassInt);
-            classificationResults.add(result);
+                Integer predClassInt = Integer.parseInt(testData.classAttribute().value((int) pred).replaceFirst("^class", ""));
+                Integer trueClassInt = Integer.parseInt(testData.classAttribute().value((int) instance.classValue()).replaceFirst("^class", ""));
+                ClassificationResult result = new ClassificationResult(docId, trueClassInt, predClassInt);
+                classificationResults.add(result);
 
 
-            writer2.printf("%s, %d, %d%n",result.docId, result.predictedClass, result.trueClass);
+                writer2.printf("%s, %d, %d%n", result.docId, result.predictedClass, result.trueClass);
+                writer2.flush();
 
+            }
+
+            double micro = evaluator.CalcMicroAvarage();
+            double macro = evaluator.CalcMacroAvarage();
+            System.out.format("k=%d:%n micro F-score=%f%n macro F-score=%f %tT %n", k, micro, macro, LocalDateTime.now());
+            logwriter.printf("k=%d:%n micro F-score=%f%n macro F-score=%f %tT %n", k, micro, macro, LocalDateTime.now());
+
+            //        System.out.println("k=" + k + " macro fscore= " + evaluator.CalcMacroAvarage() + " micro fscore= " + evaluator.CalcMicroAvarage());
+            accuracy = accuracy / (double) testData.numInstances();
+
+            // TODO - print accuracy to console (micro & macro F-score??)
+
+            System.out.format("Classification accuracy is: %f%n", accuracy);
+            logwriter.printf("Classification accuracy is: %f%n", accuracy);
+
+
+            logwriter.close();
+            writer2.close();
         }
-
-        double micro = evaluator.CalcMicroAvarage();
-        double macro = evaluator.CalcMacroAvarage();
-        System.out.format("k=%d:%n micro F-score=%f%n macro F-score=%f %tT %n",k, micro, macro,LocalDateTime.now());
-        logwriter.printf("k=%d:%n micro F-score=%f%n macro F-score=%f %tT %n",k, micro, macro,LocalDateTime.now());
-
-        //        System.out.println("k=" + k + " macro fscore= " + evaluator.CalcMacroAvarage() + " micro fscore= " + evaluator.CalcMicroAvarage());
-        accuracy = accuracy / (double) testData.numInstances();
-
-        // TODO - print accuracy to console (micro & macro F-score??)
-
-        System.out.format("Classification accuracy is: %f%n", accuracy);
-        logwriter.printf("Classification accuracy is: %f%n", accuracy);
-
-
-        logwriter.close();
-        writer2.close();
-
+        finally {
+            writer2.close();
+        }
         return classificationResults;
     }
 
@@ -223,6 +237,7 @@ public class Logic {
         System.out.format("Done loading test data to weka %tT %n", LocalDateTime.now());
         logwriter.printf("Done loading test data to weka %tT %n", LocalDateTime.now());
 
+        logwriter.flush();
 
 
         System.out.format("trainFiltered num attributes before filter %d%n", dataRawTrain.numAttributes());
