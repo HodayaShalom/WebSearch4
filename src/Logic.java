@@ -23,6 +23,7 @@ import weka.filters.unsupervised.attribute.StringToWordVector;
 import weka.core.stemmers.SnowballStemmer;
 
 public class Logic {
+    PrintWriter logwriter;
 
     Logic(Configuration config) {
         this.config = config;
@@ -32,6 +33,9 @@ public class Logic {
 
         System.out.format("Running with k = %d %tT %n", config.k, LocalDateTime.now());
 
+        logwriter = new PrintWriter("out/log.txt");
+
+        logwriter.printf("running %tT%n",LocalDateTime.now());
         if(config.recreateWekaDataFolders) {
 
             Vector<Entry> trainData = readData(config.train);
@@ -119,7 +123,7 @@ public class Logic {
         int numOfClasses = 12;
 
         Evaluator evaluator = new Evaluator(numOfClasses);
-        PrintWriter logwriter = new PrintWriter("out/log.txt");
+//        PrintWriter logwriter = new PrintWriter("out/log.txt");
         PrintWriter writer2 = new PrintWriter("out/out_intermediate.csv");
 //
 //            writer.printf("%s, %d, %d%n",res.docId, res.predictedClass, res.trueClass);
@@ -212,10 +216,14 @@ public class Logic {
         loader.setDirectory(new File(config.trainFolder));
         Instances dataRawTrain = loader.getDataSet();
         System.out.format("Done loading train data to weka %tT %n", LocalDateTime.now());
+        logwriter.printf("Done loading train data to weka %tT %n", LocalDateTime.now());
 
         loader.setDirectory(new File(config.testFolder));
         Instances dataRawTest = loader.getDataSet();
         System.out.format("Done loading test data to weka %tT %n", LocalDateTime.now());
+        logwriter.printf("Done loading test data to weka %tT %n", LocalDateTime.now());
+
+
 
         System.out.format("trainFiltered num attributes before filter %d%n", dataRawTrain.numAttributes());
         System.out.println("\n0: " + dataRawTrain.instance(0).attribute(0));
