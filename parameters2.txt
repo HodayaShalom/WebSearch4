@@ -5,7 +5,7 @@ k=5
 
 trainFolderWeka=c:/Dev/wekaFolders_partial/train
 testFolderWeka=c:/Dev/wekaFolders_partial/test
-recreateWekaDataFolders=true
+recreateWekaDataFolders=false
 
 1trainFile=data/train.csv
 1testFile=data/test.csv

@@ -1,0 +1,14 @@
+100 predicted out of 1084 08:37:57 
+200 predicted out of 1084 08:37:57 
+300 predicted out of 1084 08:37:58 
+400 predicted out of 1084 08:37:58 
+500 predicted out of 1084 08:37:58 
+600 predicted out of 1084 08:37:58 
+700 predicted out of 1084 08:37:58 
+800 predicted out of 1084 08:37:58 
+900 predicted out of 1084 08:37:58 
+1000 predicted out of 1084 08:37:58 
+k=20:
+ micro F-score=0.916052
+ macro F-score=0.126865 08:37:58 
+Classification accuracy is: 0.916052

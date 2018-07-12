@@ -119,6 +119,10 @@ public class Logic {
         int numOfClasses = 12;
 
         Evaluator evaluator = new Evaluator(numOfClasses);
+        PrintWriter logwriter = new PrintWriter("out/log.txt");
+        PrintWriter writer2 = new PrintWriter("out/out_intermediate.csv");
+//
+//            writer.printf("%s, %d, %d%n",res.docId, res.predictedClass, res.trueClass);
 
         for (Instance instance: testData) {
             double pred = classifier.classifyInstance(instance);
@@ -142,9 +146,10 @@ public class Logic {
             //System.out.format("doc %d: pred=%f,true=%f%n",i, pred, instance.classValue());
             i++;
 
-            if (i % 100 == 0)
+            if (i % 100 == 0) {
                 System.out.format("%d predicted out of %d %tT %n", i, testData.numInstances(), LocalDateTime.now());
-
+                logwriter.printf("%d predicted out of %d %tT %n", i, testData.numInstances(), LocalDateTime.now());
+            }
             // TODO - somehow retrieve the docId - DONE??
 
             String docId = FilenameUtils.getBaseName(instance.stringValue(1)).replaceFirst("^doc", "");
@@ -154,15 +159,27 @@ public class Logic {
             ClassificationResult result = new ClassificationResult(docId, trueClassInt, predClassInt);
             classificationResults.add(result);
 
+
+            writer2.printf("%s, %d, %d%n",result.docId, result.predictedClass, result.trueClass);
+
         }
 
-        System.out.format("k=%d:%n micro F-score=%f%n macro F-score=%f %tT %n",k, evaluator.CalcMicroAvarage(), evaluator.CalcMacroAvarage(),LocalDateTime.now());
-//        System.out.println("k=" + k + " macro fscore= " + evaluator.CalcMacroAvarage() + " micro fscore= " + evaluator.CalcMicroAvarage());
+        double micro = evaluator.CalcMicroAvarage();
+        double macro = evaluator.CalcMacroAvarage();
+        System.out.format("k=%d:%n micro F-score=%f%n macro F-score=%f %tT %n",k, micro, macro,LocalDateTime.now());
+        logwriter.printf("k=%d:%n micro F-score=%f%n macro F-score=%f %tT %n",k, micro, macro,LocalDateTime.now());
+
+        //        System.out.println("k=" + k + " macro fscore= " + evaluator.CalcMacroAvarage() + " micro fscore= " + evaluator.CalcMicroAvarage());
         accuracy = accuracy / (double) testData.numInstances();
 
         // TODO - print accuracy to console (micro & macro F-score??)
 
         System.out.format("Classification accuracy is: %f%n", accuracy);
+        logwriter.printf("Classification accuracy is: %f%n", accuracy);
+
+
+        logwriter.close();
+        writer2.close();
 
         return classificationResults;
     }
@@ -284,9 +301,7 @@ public class Logic {
             // TESTING LIST
             ArrayList<Integer> kListTest = new ArrayList<Integer>() {{
 //                add(1);
-//                add(3);
 //                add(5);
-//                add(7);
 //                add(10);
                 add(20);
 //                add(30);
