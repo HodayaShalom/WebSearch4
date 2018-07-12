@@ -160,8 +160,9 @@ public class Logic {
                 i++;
 
                 if (i % 100 == 0) {
-                    System.out.format("%d predicted out of %d %tT %n", i, testData.numInstances(), LocalDateTime.now());
-                    logwriter.printf("%d predicted out of %d %tT %n", i, testData.numInstances(), LocalDateTime.now());
+                    double percent = i/testData.numInstances();
+                    System.out.format("%d predicted out of %d %f%% %tT %n", i, testData.numInstances(), percent, LocalDateTime.now());
+                    logwriter.printf("%d predicted out of %d %f%% %tT %n", i, testData.numInstances(), percent, LocalDateTime.now());
                     logwriter.flush();
                 }
                 // TODO - somehow retrieve the docId - DONE??
