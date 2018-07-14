@@ -108,11 +108,11 @@ public class Logic {
             System.out.format("running classifier on test data%n");
             double accuracy = 0;
             int i = 0;
-            int numOfClasses = 12;
+            int numOfClasses = 14;
 
             Evaluator evaluator = new Evaluator(numOfClasses);
 
-            PrintWriter writer2 = new PrintWriter("out/out_intermediate.csv");
+            PrintWriter writer2 = new PrintWriter("out/out_intermediate" + k + ".csv");
 
         try {
             for (Instance instance : testData) {
