@@ -4,7 +4,6 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
 
-//import opennlp.tools.stemmer.PorterStemmer;
 import org.apache.commons.io.FileUtils;
 
 import org.apache.commons.io.FilenameUtils;
@@ -98,11 +97,9 @@ public class Logic {
 
     /*
      * build a model and test a specific classifier on a given testset.
-     * returns the accuracy running on the test and train sets.
+     * returns the classification results on each document from the test set.
      */
     ArrayList<ClassificationResult> testClassifier(Classifier classifier, Instances trainData, Instances testData, int k) throws Exception {
-
-
             ArrayList<ClassificationResult> classificationResults = new ArrayList<>();
 
             System.out.format("building classifier %tT %n", LocalDateTime.now());
@@ -205,12 +202,6 @@ public class Logic {
 
         logwriter.flush();
 
-
-        System.out.format("trainFiltered num attributes before filter %d%n", dataRawTrain.numAttributes());
-        System.out.println("\n0: " + dataRawTrain.instance(0).attribute(0));
-        System.out.println("\n1: " + dataRawTrain.instance(0).attribute(1));
-        System.out.println("\n2: " + dataRawTrain.instance(0).attribute(2));
-
         StringToWordVector stringToWordVectorFilter = new StringToWordVector();
 
         // for TFIDF weighting function
@@ -232,7 +223,6 @@ public class Logic {
         multifilter.setInputFormat(dataRawTrain);
         multifilter.setFilters(new Filter[]{rm, stringToWordVectorFilter, reorder});
 
-        /// kNN - no normalization
         ArrayList<Integer> kList = getKList(true);
 
         ArrayList<ClassificationResult> results = null;
