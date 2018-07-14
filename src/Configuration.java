@@ -1,7 +1,11 @@
 
+import weka.core.stopwords.Null;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class Configuration {
 
@@ -28,10 +32,7 @@ public class Configuration {
             if (line.startsWith("k")) {
                 String k_string = line.substring(line.indexOf("=") + 1);
                 k = Integer.parseInt(k_string);
-//                if (!mode.equals("basic") && !mode.equals("improved"))
-//                    throw new IOException("Mode (Retrieval Algorithm) parameter must be basic/improved");
             }
-
 
             if (line.startsWith("trainFolderWeka")) {
                 trainFolder = line.substring(line.indexOf("=") + 1);
@@ -45,21 +46,54 @@ public class Configuration {
                 recreateWekaDataFolders = Boolean.valueOf(line.substring(line.indexOf("=") + 1));
             }
 
-//            if (line.startsWith("truthFile")) {
-//                truth = line.substring(line.indexOf("=") + 1);
-//            }
+        }
+
+        if (train == null){
+            System.out.println("ERROR -- missing parameter in parameters file - trainFile");
+            System.exit(1);
+        }
+        if (test == null){
+            System.out.println("ERROR -- missing parameter in parameters file - testFile");
+            System.exit(1);
+        }
+        if (output == null){
+            System.out.println("ERROR -- missing parameter in parameters file - outputFile");
+            System.exit(1);
+        }
+        if (k < 1){
+            System.out.println("ERROR -- wrong value for k. please make sure it is configured correctly");
+            System.exit(1);
+        }
+
+        if (trainFolder == null){
+            Path currentPath = Paths.get(System.getProperty("user.dir"));
+            Path filePath = Paths.get(currentPath.toString(), "wekaFolders_temp", "train");
+
+
+            trainFolder = filePath.toString();
+
+            System.out.println("train weka folder not configured, using: " + trainFolder);
+        }
+        if (testFolder == null){
+            Path currentPath = Paths.get(System.getProperty("user.dir"));
+            Path filePath = Paths.get(currentPath.toString(), "wekaFolders_temp", "test");
+
+
+            testFolder = filePath.toString();
+
+            System.out.println("test weka folder not configured, using: " + testFolder);
         }
 
         bufferedReader.close();
     }
 
-    String train;
-    String test;
-    String output;
-    int k;
+    String train = null;
+    String test = null;
+    String output = null;
+    int k = 0;
 
-    String trainFolder;
-    String testFolder;
-    boolean recreateWekaDataFolders;
-//    String truth;
+    String trainFolder = null;
+    String testFolder = null;
+    boolean recreateWekaDataFolders = true;
+
 }

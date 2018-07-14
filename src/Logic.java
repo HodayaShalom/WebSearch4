@@ -43,9 +43,8 @@ public class Logic {
             if (config.recreateWekaDataFolders) {
 
                 Vector<Entry> trainData = readData(config.train);
-//        calculateFeatures(trainData);
+
                 Vector<Entry> testData = readData(config.test);
-//        calculateFeatures(testData);
 
                 writeDataInWekaFormat(trainData, testData);
             } else {
@@ -223,7 +222,6 @@ public class Logic {
     }
 
     ArrayList<ClassificationResult> runTrainAndTest() throws Exception {
-
         // load from weka directory into Instances
         TextDirectoryLoader loader = new TextDirectoryLoader();
         loader.setOutputFilename(true);
@@ -245,54 +243,31 @@ public class Logic {
         System.out.println("\n0: " + dataRawTrain.instance(0).attribute(0));
         System.out.println("\n1: " + dataRawTrain.instance(0).attribute(1));
         System.out.println("\n2: " + dataRawTrain.instance(0).attribute(2));
-//        Attribute att = dataRawTrain.attribute("filename");
 
-        // TODO - use filter to lowercase all words, stemming, etc.. check documentation
         StringToWordVector stringToWordVectorFilter = new StringToWordVector();
-//        filter.setOptions(weka.core.Utils.splitOptions("-I -T"));
+
         // for TFIDF weighting function
         stringToWordVectorFilter.setTFTransform(true);
         stringToWordVectorFilter.setIDFTransform(true);
         stringToWordVectorFilter.setLowerCaseTokens(true);
 
-        // TODO - use stemmer here? stop words?
-        SnowballStemmer snowball=new SnowballStemmer();
+        SnowballStemmer snowball = new SnowballStemmer();
 //        snowball.setStemmer("porter");
         stringToWordVectorFilter.setStemmer(snowball);
-//        stringToWordVectorFilter.setStopwordsHandler();
-//        tfIdfFilter.setInputFormat(dataRaw);
-//        Instances trainFiltered = Filter.useFilter(dataRaw, tfIdfFilter);
-
 
         Reorder reorder = new Reorder();
         reorder.setOptions(weka.core.Utils.splitOptions("-R 2-last,first"));
-//        reorder.setInputFormat(trainFiltered);
-//        trainFiltered = Filter.useFilter(trainFiltered, reorder);
 
-//        System.out.format("trainFiltered num attributes after filter %d%n",trainFiltered.numAttributes());
-
-        // TODO - check filters actually do what they are supposed to do (tfidf on the words, without the filename attribute)
         // filter to remove the attribute filename from, so that it won't affect the results
         Remove rm = new Remove();
-        rm.setAttributeIndices("2"); // ? remove filename attribute
+        rm.setAttributeIndices("2"); // remove filename attribute
 
         MultiFilter multifilter = new MultiFilter();
         multifilter.setInputFormat(dataRawTrain);
         multifilter.setFilters(new Filter[]{rm, stringToWordVectorFilter, reorder});
 
-        //filter.setInputFormat(dataRawTest);
-//        Instances testFiltered = Filter.useFilter(dataRawTest, tfIdfFilter);
-//        reorder.setInputFormat(testFiltered);
-//        testFiltered = Filter.useFilter(testFiltered, reorder);
-
-//        Vector<Stat> stats = new Vector<Stat>();
-
-
-        // TODO - maybe use normalization?? check if it improves results
-
-        // TODO 2 - run here all possible k's, for performance (only for us, not for submission. otherwise it would take forever to run everything)
         /// kNN - no normalization
-        ArrayList<Integer> kList = getKList(false);
+        ArrayList<Integer> kList = getKList(true);
 
         ArrayList<ClassificationResult> results = null;
 
@@ -302,8 +277,6 @@ public class Logic {
                     "-A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance\\\"\"");
             ((IBk) classifier).setOptions(options);
             ((IBk) classifier).setKNN(k);
-//        return testClassifier(classifier, trainFiltered, testFiltered);
-
 
             FilteredClassifier fc = new FilteredClassifier();
             fc.setFilter(multifilter);
@@ -339,113 +312,6 @@ public class Logic {
                 return kListTest;
             }
         }
-//        /// kNN - no normalization (k = 3)
-//        classifier = new IBk();
-//        options = weka.core.Utils.splitOptions("-K 3 -A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance -D\\\"\"");
-//        classifier.setOptions(options);
-//        stat = testClassifier(classifier, trainFiltered, testFiltered);
-//        stat.classifierName = "KNN(3)";
-//        stats.add(stat);
-//
-//        /// kNN - no normalization (k = 5)
-//        classifier = new IBk();
-//        options = weka.core.Utils.splitOptions("-K 5 -A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance -D\\\"\"");
-//        classifier.setOptions(options);
-//        stat = testClassifier(classifier, trainFiltered, testFiltered);
-//        stat.classifierName = "KNN(5)";
-//        stats.add(stat);
-//
-//        /// kNN - no normalization (k = 10)
-//        classifier = new IBk();
-//        options = weka.core.Utils.splitOptions("-K 10 -A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance -D\\\"\"");
-//        classifier.setOptions(options);
-//        stat = testClassifier(classifier, trainFiltered, testFiltered);
-//        stat.classifierName = "KNN(10)";
-//        stats.add(stat);
-//
-//        /// kNN - no normalization (k = 20)
-//        classifier = new IBk();
-//        options = weka.core.Utils.splitOptions("-K 20 -A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance -D\\\"\"");
-//        classifier.setOptions(options);
-//        stat = testClassifier(classifier, trainFiltered, testFiltered);
-//        stat.classifierName = "KNN(20)";
-//        stats.add(stat);
-//
-//        /// kNN - no normalization (k = 30)
-//        classifier = new IBk();
-//        options = weka.core.Utils.splitOptions("-K 30 -A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance -D\\\"\"");
-//        classifier.setOptions(options);
-//        stat = testClassifier(classifier, trainFiltered, testFiltered);
-//        stat.classifierName = "KNN(30)";
-//        stats.add(stat);
-//
-//        /// kNN - no normalization (k = 50)
-//        classifier = new IBk();
-//        options = weka.core.Utils.splitOptions("-K 50 -A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance -D\\\"\"");
-//        classifier.setOptions(options);
-//        stat = testClassifier(classifier, trainFiltered, testFiltered);
-//        stat.classifierName = "KNN(50)";
-//        stats.add(stat);
-//
-//        /// kNN - with normalization (k = 1)
-//        classifier = new IBk();
-//        options = weka.core.Utils.splitOptions("-K 1 -A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance\\\"\"");
-//        classifier.setOptions(options);
-//        stat = testClassifier(classifier, trainFiltered, testFiltered);
-//        stat.classifierName = "KNN(1)Norm";
-//        stats.add(stat);
-//
-//        /// kNN - with normalization (k = 3)
-//        classifier = new IBk();
-//        options = weka.core.Utils.splitOptions("-K 3 -A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance\\\"\"");
-//        classifier.setOptions(options);
-//        stat = testClassifier(classifier, trainFiltered, testFiltered);
-//        stat.classifierName = "KNN(3)Norm";
-//        stats.add(stat);
-//
-//        /// kNN - with normalization (k = 5)
-//        classifier = new IBk();
-//        options = weka.core.Utils.splitOptions("-K 5 -A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance\\\"\"");
-//        classifier.setOptions(options);
-//        stat = testClassifier(classifier, trainFiltered, testFiltered);
-//        stat.classifierName = "KNN(5)Norm";
-//        stats.add(stat);
-//
-//        /// kNN - with normalization (k = 10)
-//        classifier = new IBk();
-//        options = weka.core.Utils.splitOptions("-K 10 -A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance\\\"\"");
-//        classifier.setOptions(options);
-//        stat = testClassifier(classifier, trainFiltered, testFiltered);
-//        stat.classifierName = "KNN(10)Norm";
-//        stats.add(stat);
-//
-//        /// kNN - with normalization (k = 20)
-//        classifier = new IBk();
-//        options = weka.core.Utils.splitOptions("-K 20 -A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance\\\"\"");
-//        classifier.setOptions(options);
-//        stat = testClassifier(classifier, trainFiltered, testFiltered);
-//        stat.classifierName = "KNN(20)Norm";
-//        stats.add(stat);
-//
-//        /// kNN - with normalization (k = 30)
-//        classifier = new IBk();
-//        options = weka.core.Utils.splitOptions("-K 30 -A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance\\\"\"");
-//        classifier.setOptions(options);
-//        stat = testClassifier(classifier, trainFiltered, testFiltered);
-//        stat.classifierName = "KNN(30)Norm";
-//        stats.add(stat);
-//
-//        /// kNN - with normalization (k = 50)
-//        classifier = new IBk();
-//        options = weka.core.Utils.splitOptions("-K 50 -A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance\\\"\"");
-//        classifier.setOptions(options);
-//        stat = testClassifier(classifier, trainFiltered, testFiltered);
-//        stat.classifierName = "KNN(50)Norm";
-//        stats.add(stat);
-//
-//        return stats;
-
-
 
     /*
      * preparing a data folder to be be read by the StringToWords filter of WEKA
@@ -477,7 +343,6 @@ public class Logic {
         pw.print(entry.text);
         pw.close();
     }
-
 
     // members:
     Configuration config;
