@@ -76,25 +76,10 @@ public class Logic {
             entry.id = tokens[0];
             entry.label = Integer.parseInt(tokens[1]);
 
-            // TODO - lowercase all text, and clean text from non letter chars. (in a function?)
-
             String text = tokens[2] + " " + tokens[3];
 
-//            text = Utils.StripPunctuationsAndSigns(text);
-
-            // TODO - lemmatize and stem
-
-//            PorterStemmer ps = new PorterStemmer();
-//
-//            ps.
-//            String[] words = text.split(" ");
-//            Vector<Vector<String>> words = openNlp.processText(tokens[2] + " " + tokens[3], true, true);
-
-//            entry.words = new Vector<>(Arrays.asList(words));
             entry.text = text;
             dataEntries.add(entry);
-            // write here to weka instead of storing data to entry?
-//            writeEntryToDataFile(entry, wekaFolder);
         }
         reader.close();
 
@@ -103,7 +88,6 @@ public class Logic {
     }
 
     void writeDataInWekaFormat(Vector<Entry> train, Vector<Entry> test) throws Exception {
-
         // write to directory in weka "format"
         createDataFolder(train, config.trainFolder);
         System.out.format("Done creating data folder for train%n");
@@ -130,12 +114,10 @@ public class Logic {
             int numOfClasses = 12;
 
             Evaluator evaluator = new Evaluator(numOfClasses);
-//        PrintWriter logwriter = new PrintWriter("out/log.txt");
-            PrintWriter writer2 = new PrintWriter("out/out_intermediate.csv");
-//
-        try {
-//            writer.printf("%s, %d, %d%n",res.docId, res.predictedClass, res.trueClass);
 
+            PrintWriter writer2 = new PrintWriter("out/out_intermediate.csv");
+
+        try {
             for (Instance instance : testData) {
                 double pred = classifier.classifyInstance(instance);
 
@@ -144,18 +126,7 @@ public class Logic {
                 if (instance.classValue() == pred) {
                     accuracy++;
                 }
-//            System.out.format("num attributes %d%n",instance.numAttributes());
-//
-//
-//            System.out.println("\n0: "+instance.attribute(0) + "value: " + instance.stringValue(0)); // text
-//            System.out.println("\n1: "+instance.attribute(1) + "value: " + instance.stringValue(1)); // filename
-//            System.out.println("\n2: "+instance.attribute(2) + "value: " + instance.stringValue(2)); // class
-//
-//            System.out.print("ID: " + testData.instance(i).value(0));
-//            System.out.print(", actual: " + testData.classAttribute().value((int) instance.classValue()));
-//            System.out.println(", predicted: " + testData.classAttribute().value((int) pred));
 
-                //System.out.format("doc %d: pred=%f,true=%f%n",i, pred, instance.classValue());
                 i++;
 
                 if (i % 100 == 0) {
@@ -164,10 +135,9 @@ public class Logic {
                     logwriter.printf("%d predicted out of %d %f%% %tT %n", i, testData.numInstances(), percent, LocalDateTime.now());
                     logwriter.flush();
                 }
-                // TODO - somehow retrieve the docId - DONE??
 
                 String docId = FilenameUtils.getBaseName(instance.stringValue(1)).replaceFirst("^doc", "");
-//            docId = Integer.toString(i);
+
                 Integer predClassInt = Integer.parseInt(testData.classAttribute().value((int) pred).replaceFirst("^class", ""));
                 Integer trueClassInt = Integer.parseInt(testData.classAttribute().value((int) instance.classValue()).replaceFirst("^class", ""));
                 ClassificationResult result = new ClassificationResult(docId, trueClassInt, predClassInt);
@@ -184,10 +154,7 @@ public class Logic {
             System.out.format("k=%d:%n micro F-score=%f%n macro F-score=%f %tT %n", k, micro, macro, LocalDateTime.now());
             logwriter.printf("k=%d:%n micro F-score=%f%n macro F-score=%f %tT %n", k, micro, macro, LocalDateTime.now());
 
-            //        System.out.println("k=" + k + " macro fscore= " + evaluator.CalcMacroAvarage() + " micro fscore= " + evaluator.CalcMicroAvarage());
             accuracy = accuracy / (double) testData.numInstances();
-
-            // TODO - print accuracy to console (micro & macro F-score??)
 
             System.out.format("Classification accuracy is: %f%n", accuracy);
             logwriter.printf("Classification accuracy is: %f%n", accuracy);
@@ -252,7 +219,6 @@ public class Logic {
         stringToWordVectorFilter.setLowerCaseTokens(true);
 
         SnowballStemmer snowball = new SnowballStemmer();
-//        snowball.setStemmer("porter");
         stringToWordVectorFilter.setStemmer(snowball);
 
         Reorder reorder = new Reorder();
