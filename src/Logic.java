@@ -76,7 +76,7 @@ public class Logic {
             entry.id = tokens[0];
             entry.label = Integer.parseInt(tokens[1]);
 
-            String text = tokens[2] + " " + tokens[3];
+            String text = tokens[2] + " " + tokens[3]; // title + text
 
             entry.text = text;
             dataEntries.add(entry);
