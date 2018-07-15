@@ -3,11 +3,6 @@ testFile=data/test_short.csv
 outputFile=out/out1.csv 
 k=5
 
-1trainFolderWeka=c:/Dev/wekaFolders_partial/train
-1testFolderWeka=c:/Dev/wekaFolders_partial/test
-1recreateWekaDataFolders=false
-
-trainFile=data/train_short.csv
-testFile=data/test_short.csv
+trainFolderWeka=c:/Dev/wekaFolders_partial/train
+testFolderWeka=c:/Dev/wekaFolders_partial/test
 recreateWekaDataFolders=true
-

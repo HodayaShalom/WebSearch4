@@ -48,7 +48,7 @@ public class Evaluator {
     public Evaluator(int numOfClasses){
         this.numOfClasses = numOfClasses;
 
-        for(int i = 0; i < numOfClasses; i++) {
+        for(int i = 1; i < numOfClasses+1; i++) {
             classesEvals.put(i, new Evals());
         }
     }
@@ -121,7 +121,7 @@ public class Evaluator {
     public double CalcMacroAvarage(){
         double sum = 0;
 
-        for(int i = 0; i < numOfClasses; i++){
+        for(int i = 1; i < numOfClasses + 1; i++){
             sum += CalcFscore(i);
         }
         return sum/(double)numOfClasses;

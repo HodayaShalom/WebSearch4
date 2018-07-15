@@ -53,8 +53,7 @@ public class Logic {
             ArrayList<ClassificationResult> results = runTrainAndTest();
 
             writeResultsToFile(results);
-        }
-        finally {
+        } finally {
             logwriter.close();
         }
     }
@@ -83,7 +82,7 @@ public class Logic {
         }
         reader.close();
 
-        System.out.format("Done reading data from %s %tT %n", dataFile , LocalDateTime.now());
+        System.out.format("Done reading data from %s %tT %n", dataFile, LocalDateTime.now());
         return dataEntries;
     }
 
@@ -101,21 +100,19 @@ public class Logic {
      * returns the accuracy running on the test and train sets.
      */
     ArrayList<ClassificationResult> testClassifier(Classifier classifier, Instances trainData, Instances testData, int k) throws Exception {
+        ArrayList<ClassificationResult> classificationResults = new ArrayList<>();
 
+        System.out.format("building classifier %tT %n", LocalDateTime.now());
+        classifier.buildClassifier(trainData);
 
-            ArrayList<ClassificationResult> classificationResults = new ArrayList<>();
+        System.out.format("running classifier on test data%n");
+        double accuracy = 0;
+        int i = 0;
+        int numOfClasses = 14;
 
-            System.out.format("building classifier %tT %n", LocalDateTime.now());
-            classifier.buildClassifier(trainData);
+        Evaluator evaluator = new Evaluator(numOfClasses);
 
-            System.out.format("running classifier on test data%n");
-            double accuracy = 0;
-            int i = 0;
-            int numOfClasses = 12;
-
-            Evaluator evaluator = new Evaluator(numOfClasses);
-
-            PrintWriter writer2 = new PrintWriter("out/out_intermediate.csv");
+        PrintWriter writer2 = new PrintWriter("out/out_intermediate.csv");
 
         try {
             for (Instance instance : testData) {
@@ -130,7 +127,7 @@ public class Logic {
                 i++;
 
                 if (i % 100 == 0) {
-                    double percent = i/testData.numInstances();
+                    double percent = i / testData.numInstances();
                     System.out.format("%d predicted out of %d %f%% %tT %n", i, testData.numInstances(), percent, LocalDateTime.now());
                     logwriter.printf("%d predicted out of %d %f%% %tT %n", i, testData.numInstances(), percent, LocalDateTime.now());
                     logwriter.flush();
@@ -162,15 +159,14 @@ public class Logic {
 
             logwriter.close();
             writer2.close();
-        }
-        finally {
+        } finally {
             writer2.close();
         }
         return classificationResults;
     }
 
 
-    private void writeResultsToFile(ArrayList<ClassificationResult> results)  throws IOException {
+    private void writeResultsToFile(ArrayList<ClassificationResult> results) throws IOException {
 
 //        Your software must write the test-set classification results to the specified output file in the
 //        following format:
@@ -181,9 +177,9 @@ public class Logic {
         PrintWriter writer = new PrintWriter(config.output);
 
         results.sort(Comparator.comparing(ClassificationResult::getDocId));
-        for(ClassificationResult res: results){
+        for (ClassificationResult res : results) {
 //            System.out.format("doc %d: pred=%f,true=%f%n",res.docId, res.predictedClass, res.trueClass);
-            writer.printf("%s, %d, %d%n",res.docId, res.predictedClass, res.trueClass);
+            writer.printf("%s, %d, %d%n", res.docId, res.predictedClass, res.trueClass);
         }
         writer.close();
     }
@@ -237,7 +233,7 @@ public class Logic {
 
         ArrayList<ClassificationResult> results = null;
 
-        for (Integer k: kList) {
+        for (Integer k : kList) {
             Classifier classifier = new IBk();
             String[] options = weka.core.Utils.splitOptions(
                     "-A \"weka.core.neighboursearch.LinearNNSearch -A \\\"weka.core.EuclideanDistance\\\"\"");
@@ -248,36 +244,35 @@ public class Logic {
             fc.setFilter(multifilter);
             fc.setClassifier(classifier);
 
-           results = testClassifier(fc, dataRawTrain, dataRawTest, k);
+            results = testClassifier(fc, dataRawTrain, dataRawTest, k);
         }
 
         // return results of last k run
         return results;
     }
 
-    ArrayList<Integer> getKList(boolean prod){
-            // PRODUCTION LIST
-            ArrayList<Integer> kListProd = new ArrayList<Integer>() {{
-                add(config.k);
-            }};
+    ArrayList<Integer> getKList(boolean prod) {
+        // PRODUCTION LIST
+        ArrayList<Integer> kListProd = new ArrayList<Integer>() {{
+            add(config.k);
+        }};
 
-            // TESTING LIST
-            ArrayList<Integer> kListTest = new ArrayList<Integer>() {{
+        // TESTING LIST
+        ArrayList<Integer> kListTest = new ArrayList<Integer>() {{
 //                add(1);
 //                add(5);
 //                add(10);
-                add(20);
+            add(20);
 //                add(30);
 //                add(50);
 
-            }};
-            if(prod){
-                return kListProd;
-            }
-            else {
-                return kListTest;
-            }
+        }};
+        if (prod) {
+            return kListProd;
+        } else {
+            return kListTest;
         }
+    }
 
     /*
      * preparing a data folder to be be read by the StringToWords filter of WEKA
@@ -290,13 +285,13 @@ public class Logic {
         int counter = 0;
 
         // this takes a really long time...
-        for (Entry entry: data) {
+        for (Entry entry : data) {
 
             counter++;
             if (counter % 100 == 0)
                 System.out.println("" + counter + " files were created");
 
-            System.out.format("writing to weka %s doc %s %tT %n", folder ,entry.id, LocalDateTime.now());
+            System.out.format("writing to weka %s doc %s %tT %n", folder, entry.id, LocalDateTime.now());
             writeEntryToDataFile(entry, folder);
         }
     }
