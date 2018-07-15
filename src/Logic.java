@@ -4,7 +4,6 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
 
-//import opennlp.tools.stemmer.PorterStemmer;
 import org.apache.commons.io.FileUtils;
 
 import org.apache.commons.io.FilenameUtils;
@@ -75,7 +74,7 @@ public class Logic {
             entry.id = tokens[0];
             entry.label = Integer.parseInt(tokens[1]);
 
-            String text = tokens[2] + " " + tokens[3];
+            String text = tokens[2] + " " + tokens[3]; // title + text
 
             entry.text = text;
             dataEntries.add(entry);
@@ -97,24 +96,22 @@ public class Logic {
 
     /*
      * build a model and test a specific classifier on a given testset.
-     * returns the accuracy running on the test and train sets.
+     * returns the classification results on each document from the test set.
      */
     ArrayList<ClassificationResult> testClassifier(Classifier classifier, Instances trainData, Instances testData, int k) throws Exception {
         ArrayList<ClassificationResult> classificationResults = new ArrayList<>();
 
-        System.out.format("building classifier %tT %n", LocalDateTime.now());
-        classifier.buildClassifier(trainData);
+            System.out.format("building classifier %tT %n", LocalDateTime.now());
+            classifier.buildClassifier(trainData);
 
-        System.out.format("running classifier on test data%n");
-        double accuracy = 0;
-        int i = 0;
-        int numOfClasses = 14;
+            System.out.format("running classifier on test data%n");
+            double accuracy = 0;
+            int i = 0;
+            int numOfClasses = 14;
 
-        Evaluator evaluator = new Evaluator(numOfClasses);
+            Evaluator evaluator = new Evaluator(numOfClasses);
 
-        PrintWriter writer2 = new PrintWriter("out/out_intermediate.csv");
-
-        try {
+            PrintWriter writer2 = new PrintWriter("out/out_intermediate" + k + ".csv");        try {
             for (Instance instance : testData) {
                 double pred = classifier.classifyInstance(instance);
 
@@ -201,12 +198,6 @@ public class Logic {
 
         logwriter.flush();
 
-
-        System.out.format("trainFiltered num attributes before filter %d%n", dataRawTrain.numAttributes());
-        System.out.println("\n0: " + dataRawTrain.instance(0).attribute(0));
-        System.out.println("\n1: " + dataRawTrain.instance(0).attribute(1));
-        System.out.println("\n2: " + dataRawTrain.instance(0).attribute(2));
-
         StringToWordVector stringToWordVectorFilter = new StringToWordVector();
 
         // for TFIDF weighting function
@@ -228,7 +219,6 @@ public class Logic {
         multifilter.setInputFormat(dataRawTrain);
         multifilter.setFilters(new Filter[]{rm, stringToWordVectorFilter, reorder});
 
-        /// kNN - no normalization
         ArrayList<Integer> kList = getKList(true);
 
         ArrayList<ClassificationResult> results = null;
@@ -257,11 +247,13 @@ public class Logic {
             add(config.k);
         }};
 
+
         // TESTING LIST
         ArrayList<Integer> kListTest = new ArrayList<Integer>() {{
 //                add(1);
 //                add(5);
 //                add(10);
+
             add(20);
 //                add(30);
 //                add(50);
@@ -285,11 +277,13 @@ public class Logic {
         int counter = 0;
 
         // this takes a really long time...
+
         for (Entry entry : data) {
 
             counter++;
             if (counter % 100 == 0)
                 System.out.println("" + counter + " files were created");
+
 
             System.out.format("writing to weka %s doc %s %tT %n", folder, entry.id, LocalDateTime.now());
             writeEntryToDataFile(entry, folder);
